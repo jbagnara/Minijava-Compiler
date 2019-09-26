@@ -60,7 +60,24 @@ extern int yydebug;
     PLUS = 266,
     MINUS = 267,
     STAR = 268,
-    SLASH = 269
+    SLASH = 269,
+    LBRACK = 270,
+    RBRACK = 271,
+    LBRACE = 272,
+    RBRACE = 273,
+    LPARENTH = 274,
+    RPARENTH = 275,
+    EXTENDS = 276,
+    HEADER = 277,
+    STRING_LITERAL = 278,
+    WORD = 279,
+    STRINGDECL = 280,
+    CLASS = 281,
+    IF = 282,
+    WHILE = 283,
+    NOT = 284,
+    TRUE = 285,
+    FALSE = 286
   };
 #endif
 /* Tokens.  */
@@ -76,6 +93,23 @@ extern int yydebug;
 #define MINUS 267
 #define STAR 268
 #define SLASH 269
+#define LBRACK 270
+#define RBRACK 271
+#define LBRACE 272
+#define RBRACE 273
+#define LPARENTH 274
+#define RPARENTH 275
+#define EXTENDS 276
+#define HEADER 277
+#define STRING_LITERAL 278
+#define WORD 279
+#define STRINGDECL 280
+#define CLASS 281
+#define IF 282
+#define WHILE 283
+#define NOT 284
+#define TRUE 285
+#define FALSE 286
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
