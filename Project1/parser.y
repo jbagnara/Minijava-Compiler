@@ -23,7 +23,7 @@ main(int argc, char** argv){
 %}
 
 
-%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL
+%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH
 
 %%
 
@@ -41,15 +41,16 @@ ClassDeclList:
 	;
 
 ClassDecl:
-	CLASS id ParentMaybe LBRACE VarDeclList MethodDeclList RBRACE
+	CLASS id LBRACE ParentMaybe VarDeclList MethodDeclList RBRACE
 	;
 
 ParentMaybe:
 	Parent
-	| /*empty*/	
+	| /*empty*/	{printf("chungus\n");}	
+	;
 
 Parent:
-	LBRACE EXTENDS id RBRACE
+	EXTENDS id RBRACE LBRACE
 	;
 	
 
@@ -76,8 +77,8 @@ MethodDeclList:
 	;
 
 MethodDecl:
-	PUBLIC Type id LPARENTH FormalListMaybe RPARENTH StatementList
-	| Type id LPARENTH FormalListMaybe RPARENTH StatementList
+	PUBLIC Type id LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE
+	| Type id LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE
 	;
 
 FormalListMaybe:
@@ -86,8 +87,8 @@ FormalListMaybe:
 	;
 
 FormalList:
-	Type id LPARENTH
-	| Type id LPARENTH COMMA FormalList
+	Type id
+	| Type id COMMA FormalList
 
 Type:
 	PRIMETYPE
@@ -134,8 +135,7 @@ ExpList:
 	| Exp COMMA Exp
 	;
 
-Exp:
-	Exp op Exp
+ExpOp:
 	| NOT Exp
 	| PLUS Exp
 	| MINUS Exp
@@ -145,7 +145,16 @@ Exp:
 	| FALSE
 	| INTEGER_LITERAL
 	| MethodCall
+	| NEW id LBRACE RPARENTH
+	| NEW PRIMETYPE Index
+	| LeftValue
+	| LeftValue DOT LENGTH
 
+	;
+
+Exp:
+	ExpOp op Exp
+	| ExpOp
 	;
 
 id:
@@ -161,11 +170,7 @@ op:
 	| GREATEQ
 	| EQUIVALENT
 	| NOTEQUAL
-	| MINUS
 	| STAR
 	| SLASH
 	;
 
-class:
-	WORD
-	;

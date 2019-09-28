@@ -88,7 +88,8 @@ extern int yydebug;
     NEW = 294,
     THIS = 295,
     RETURN = 296,
-    INTEGER_LITERAL = 297
+    INTEGER_LITERAL = 297,
+    LENGTH = 298
   };
 #endif
 /* Tokens.  */
@@ -132,6 +133,7 @@ extern int yydebug;
 #define THIS 295
 #define RETURN 296
 #define INTEGER_LITERAL 297
+#define LENGTH 298
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED

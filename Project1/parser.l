@@ -42,6 +42,7 @@
 "new"				return NEW;
 "this"				return THIS;
 "return"			return RETURN;
+"length"			return LENGTH;
 "public static void main"	return HEADER;
 "System.out.print"		return PRINT;
 "System.out.println"		return PRINTLN;
