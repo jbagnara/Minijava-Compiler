@@ -47,8 +47,9 @@
 "System.out.print"		return PRINT;
 "System.out.println"		return PRINTLN;
 "if"				return IF;
+"else"				return ELSE;
 "while"				return WHILE;
-[a-zA-Z0-9]+			return WORD;
+[a-zA-Z0-9$_]+			return WORD;
 \t
 \n				
 " "	

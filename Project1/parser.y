@@ -23,7 +23,7 @@ main(int argc, char** argv){
 %}
 
 
-%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH
+%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH ELSE
 
 %%
 
@@ -32,7 +32,7 @@ Program:
 	;
 
 MainClass:
-	CLASS id LBRACE HEADER LPARENTH PRIMETYPE LBRACK RBRACK id RPARENTH LBRACE StatementList RBRACE RBRACE
+	CLASS id LBRACE HEADER LPARENTH PRIMETYPE LBRACK RBRACK id RPARENTH LBRACE StatementList RBRACE RBRACE {printf("maintime\n");}
 	;
 
 ClassDeclList:
@@ -41,7 +41,7 @@ ClassDeclList:
 	;
 
 ClassDecl:
-	CLASS id LBRACE ParentMaybe VarDeclList MethodDeclList RBRACE
+	CLASS id ParentMaybe LBRACE VarDeclList MethodDeclList RBRACE
 	;
 
 ParentMaybe:
@@ -50,7 +50,7 @@ ParentMaybe:
 	;
 
 Parent:
-	EXTENDS id RBRACE LBRACE
+	EXTENDS id
 	;
 	
 
@@ -60,16 +60,18 @@ VarDeclList:
 	;
 
 VarDecl:
-	Type id VarInitList SEMICOLON
-	| Type id SEMICOLON
+	Type VarInitList SEMICOLON
 	;
 
 VarInitList:
-	VarInit
-	| VarInit COMMA VarInitList
+	id VarInit
+	| id VarInit COMMA VarInitList
+	;
 
 VarInit:
 	EQUAL Exp
+	| /*empty*/
+	;
 
 MethodDeclList:
 	MethodDecl MethodDeclList
@@ -91,7 +93,7 @@ FormalList:
 	| Type id COMMA FormalList
 
 Type:
-	PRIMETYPE
+	PRIMETYPE		{printf("wowa\n");}
 	| Type LBRACK RBRACK	{printf("yayayaa\n");}
 	;
 
@@ -103,7 +105,7 @@ StatementList:
 Statement:
 	VarDecl
 	| LBRACE StatementList RBRACE
-	| IF LPARENTH Exp RPARENTH Statement
+	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
 	| WHILE LPARENTH Exp RPARENTH Statement
 	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON
@@ -118,7 +120,7 @@ MethodCall:
 	;
 
 LeftValue:
-	id
+	id	{printf("woah %d\n", yylineno);}
 	| LeftValue Index
 	| LeftValue DOT id
 	| LPARENTH NEW id LPARENTH RPARENTH RPARENTH DOT id
@@ -132,13 +134,11 @@ Index:
 
 ExpList:
 	Exp
-	| Exp COMMA Exp
+	| ExpList COMMA Exp
 	;
 
 ExpOp:
-	| NOT Exp
-	| PLUS Exp
-	| MINUS Exp
+	| NOT ExpOp
 	| LPARENTH Exp RPARENTH
 	| STRING_LITERAL
 	| TRUE
@@ -153,7 +153,7 @@ ExpOp:
 	;
 
 Exp:
-	ExpOp op Exp
+	Exp op ExpOp
 	| ExpOp
 	;
 
@@ -172,5 +172,7 @@ op:
 	| NOTEQUAL
 	| STAR
 	| SLASH
+	| PLUS
+	| MINUS
 	;
 
