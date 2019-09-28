@@ -3,16 +3,22 @@
 #include "y.tab.h"
 %}
 
+%option yylineno
+
 %%
+"//"[^\n]*\n			//Comment
+"/*"([^*]|\*+[^*/])*\*+"/"	/*Comment*/
 \"[^"]*\"			return STRING_LITERAL;
+[0-9]+				return INTEGER_LITERAL;
 "&&"				return AND;
 "||"				return OR;
 "<"				return LESS;
 ">"				return GREAT;
 "<="				return LESSEQ;
 ">="				return GREATEQ;
-"=="				return EQUAL;
+"=="				return EQUIVALENT;
 "!="				return NOTEQUAL;
+"="				return EQUAL;
 "!"				return NOT;
 "+"				return PLUS;
 "-"				return MINUS;
@@ -24,16 +30,25 @@
 ")"				return RPARENTH;
 "["				return LBRACK;
 "]"				return RBRACK;
+","				return COMMA;
+"."				return DOT;
+";"				return SEMICOLON;
+"int"|"boolean"|"id"|"String"	return PRIMETYPE;
+"public"			return PUBLIC;
 "extends"			return EXTENDS;
 "class"				return CLASS;
 "true"				return TRUE;
 "false"				return FALSE;
+"new"				return NEW;
+"this"				return THIS;
+"return"			return RETURN;
 "public static void main"	return HEADER;
-"String"|"string"		return STRINGDECL;
+"System.out.print"		return PRINT;
+"System.out.println"		return PRINTLN;
 "if"				return IF;
 "while"				return WHILE;
 [a-zA-Z0-9]+			return WORD;
 \t
-\n				yylineno++;
+\n				
 " "	
 %%

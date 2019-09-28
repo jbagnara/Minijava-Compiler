@@ -71,13 +71,24 @@ extern int yydebug;
     HEADER = 277,
     STRING_LITERAL = 278,
     WORD = 279,
-    STRINGDECL = 280,
-    CLASS = 281,
-    IF = 282,
-    WHILE = 283,
-    NOT = 284,
-    TRUE = 285,
-    FALSE = 286
+    CLASS = 280,
+    IF = 281,
+    WHILE = 282,
+    NOT = 283,
+    TRUE = 284,
+    FALSE = 285,
+    PRIMETYPE = 286,
+    PUBLIC = 287,
+    COMMA = 288,
+    EQUIVALENT = 289,
+    SEMICOLON = 290,
+    PRINT = 291,
+    PRINTLN = 292,
+    DOT = 293,
+    NEW = 294,
+    THIS = 295,
+    RETURN = 296,
+    INTEGER_LITERAL = 297
   };
 #endif
 /* Tokens.  */
@@ -103,13 +114,24 @@ extern int yydebug;
 #define HEADER 277
 #define STRING_LITERAL 278
 #define WORD 279
-#define STRINGDECL 280
-#define CLASS 281
-#define IF 282
-#define WHILE 283
-#define NOT 284
-#define TRUE 285
-#define FALSE 286
+#define CLASS 280
+#define IF 281
+#define WHILE 282
+#define NOT 283
+#define TRUE 284
+#define FALSE 285
+#define PRIMETYPE 286
+#define PUBLIC 287
+#define COMMA 288
+#define EQUIVALENT 289
+#define SEMICOLON 290
+#define PRINT 291
+#define PRINTLN 292
+#define DOT 293
+#define NEW 294
+#define THIS 295
+#define RETURN 296
+#define INTEGER_LITERAL 297
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
