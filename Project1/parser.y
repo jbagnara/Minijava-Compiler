@@ -4,6 +4,8 @@
 
 extern int yylineno;
 extern FILE* yyin;
+extern int yyparse();
+extern int yylex();
 
 void yyerror(const char* str){
 	printf("Syntax errors found in line number %d\n", yylineno);
@@ -13,17 +15,21 @@ int yywrap(){
 	return 1;
 }
 
-main(int argc, char** argv){
+int main(int argc, char** argv){
+	#ifdef YYDEBUG
+	yydebug = 1;
+	#endif
 	char* fname = argv[1];
 	FILE* file = fopen(argv[1], "r");
 	yyin = file;
 	yyparse();
+	fclose(file);
 }
 
 %}
 
 
-%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH ELSE
+%token AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL WORD CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH ELSE BRACKETS
 
 %%
 
@@ -32,7 +38,7 @@ Program:
 	;
 
 MainClass:
-	CLASS id LBRACE HEADER LPARENTH PRIMETYPE LBRACK RBRACK id RPARENTH LBRACE StatementList RBRACE RBRACE {printf("maintime\n");}
+	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE {printf("maintime\n");}
 	;
 
 ClassDeclList:
@@ -41,7 +47,7 @@ ClassDeclList:
 	;
 
 ClassDecl:
-	CLASS id ParentMaybe LBRACE VarDeclList MethodDeclList RBRACE
+	CLASS id ParentMaybe LBRACE VarMethodDeclList RBRACE
 	;
 
 ParentMaybe:
@@ -52,20 +58,29 @@ ParentMaybe:
 Parent:
 	EXTENDS id
 	;
-	
 
-VarDeclList:
-	VarDecl VarDeclList
+VarMethodDeclList:
+	VarOrMethod VarMethodDeclList
 	| /*empty*/
 	;
 
+VarOrMethod:
+	Type id VarMethodDecl
+	| PUBLIC Type id MethodDecl
+	;
+
+VarMethodDecl:
+	VarDecl
+	| MethodDecl
+	;
+
 VarDecl:
-	Type VarInitList SEMICOLON
+	VarInitList SEMICOLON
 	;
 
 VarInitList:
-	id VarInit
-	| id VarInit COMMA VarInitList
+	VarInit
+	| VarInit COMMA id VarInitList
 	;
 
 VarInit:
@@ -73,14 +88,8 @@ VarInit:
 	| /*empty*/
 	;
 
-MethodDeclList:
-	MethodDecl MethodDeclList
-	| /*empty*/
-	;
-
 MethodDecl:
-	PUBLIC Type id LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE
-	| Type id LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE
+	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE
 	;
 
 FormalListMaybe:
@@ -93,8 +102,12 @@ FormalList:
 	| Type id COMMA FormalList
 
 Type:
-	PRIMETYPE		{printf("wowa\n");}
-	| Type LBRACK RBRACK	{printf("yayayaa\n");}
+	PRIMETYPE BracketsList		{printf("wowa\n");}
+	| id BracketsList
+
+BracketsList:
+	BracketsList BRACKETS	{printf("yayayaa\n");}
+	| /*empty*/ 
 	;
 
 StatementList: 
@@ -103,16 +116,18 @@ StatementList:
 	;
 
 Statement:
-	VarDecl
+	Type id VarDecl
 	| LBRACE StatementList RBRACE
 	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
 	| WHILE LPARENTH Exp RPARENTH Statement
 	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON
 	| LeftValue EQUAL Exp SEMICOLON
+	| LeftValue2 EQUAL Exp SEMICOLON
 	| RETURN Exp SEMICOLON
 	| MethodCall SEMICOLON
 	;
+
 
 MethodCall:
 	LeftValue LPARENTH ExpList RPARENTH
@@ -121,16 +136,24 @@ MethodCall:
 
 LeftValue:
 	id	{printf("woah %d\n", yylineno);}
-	| LeftValue Index
+	| LeftValue LBRACK Index
 	| LeftValue DOT id
-	| LPARENTH NEW id LPARENTH RPARENTH RPARENTH DOT id
-	| NEW id LPARENTH RPARENTH DOT id
+	| NewFunc DOT id
 	| THIS DOT id
 	;
 
+LeftValue2:	
+	| LeftValue2 LBRACK Index
+	| LeftValue2 DOT id
+	| LPARENTH NewFunc RPARENTH DOT id
+
+IndexList:
+	IndexList LBRACK Index
+	| Index
+
 Index:
-	LBRACK Exp RBRACK
-	| Index LBRACK Exp RBRACK
+	Exp RBRACK
+	;
 
 ExpList:
 	Exp
@@ -138,18 +161,23 @@ ExpList:
 	;
 
 ExpOp:
-	| NOT ExpOp
+	NOT ExpOp
 	| LPARENTH Exp RPARENTH
 	| STRING_LITERAL
 	| TRUE
 	| FALSE
 	| INTEGER_LITERAL
 	| MethodCall
-	| NEW id LBRACE RPARENTH
-	| NEW PRIMETYPE Index
+	| NewFunc
+	| NEW Type LBRACK IndexList
 	| LeftValue
 	| LeftValue DOT LENGTH
+	| PLUS ExpOp
+	| MINUS ExpOp
+	;
 
+NewFunc:
+	NEW id LPARENTH RPARENTH
 	;
 
 Exp:
@@ -175,4 +203,3 @@ op:
 	| PLUS
 	| MINUS
 	;
-

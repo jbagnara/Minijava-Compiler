@@ -28,12 +28,13 @@
 "}"				return RBRACE;
 "("				return LPARENTH;
 ")"				return RPARENTH;
+"[]"				return BRACKETS;
 "["				return LBRACK;
 "]"				return RBRACK;
 ","				return COMMA;
 "."				return DOT;
 ";"				return SEMICOLON;
-"int"|"boolean"|"id"|"String"	return PRIMETYPE;
+"int"|"boolean"|"String"	return PRIMETYPE;
 "public"			return PUBLIC;
 "extends"			return EXTENDS;
 "class"				return CLASS;
@@ -49,7 +50,7 @@
 "if"				return IF;
 "else"				return ELSE;
 "while"				return WHILE;
-[a-zA-Z0-9$_]+			return WORD;
+[a-zA-Z][a-zA-Z0-9_]*		return WORD;
 \t
 \n				
 " "	

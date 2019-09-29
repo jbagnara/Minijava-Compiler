@@ -15,7 +15,7 @@ class Numbers {
 	public int choose(int n, int k) {
 		int res;
 		if (!(n<k)) {
-			// n! / (k! (n-k)!)
+			//n! / (k! (n-k)!)
 			int i = 1;
 			res = +1; // just to test unary +
 			while (i <= k) {

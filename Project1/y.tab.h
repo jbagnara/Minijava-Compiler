@@ -90,7 +90,8 @@ extern int yydebug;
     RETURN = 296,
     INTEGER_LITERAL = 297,
     LENGTH = 298,
-    ELSE = 299
+    ELSE = 299,
+    BRACKETS = 300
   };
 #endif
 /* Tokens.  */
@@ -136,6 +137,7 @@ extern int yydebug;
 #define INTEGER_LITERAL 297
 #define LENGTH 298
 #define ELSE 299
+#define BRACKETS 300
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
