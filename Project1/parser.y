@@ -34,11 +34,11 @@ int main(int argc, char** argv){
 %%
 
 Program:	
-	MainClass ClassDeclList /*RBRACE*/ {printf("wahoo\n");}
+	MainClass ClassDeclList
 	;
 
 MainClass:
-	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE {printf("maintime\n");}
+	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
 	;
 
 ClassDeclList:
@@ -52,7 +52,7 @@ ClassDecl:
 
 ParentMaybe:
 	Parent
-	| /*empty*/	{printf("chungus\n");}	
+	| /*empty*/
 	;
 
 Parent:
@@ -102,11 +102,11 @@ FormalList:
 	| Type id COMMA FormalList
 
 Type:
-	PRIMETYPE BracketsList		{printf("wowa\n");}
+	PRIMETYPE BracketsList
 	| id BracketsList
 
 BracketsList:
-	BracketsList BRACKETS	{printf("yayayaa\n");}
+	BracketsList BRACKETS
 	| /*empty*/ 
 	;
 
@@ -135,7 +135,7 @@ MethodCall:
 	;
 
 LeftValue:
-	id	{printf("woah %d\n", yylineno);}
+	id
 	| LeftValue LBRACK Index
 	| LeftValue DOT id
 	| NewFunc DOT id

@@ -1490,44 +1490,8 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 2:
-#line 37 "parser.y"
-    {printf("wahoo\n");}
-#line 1497 "y.tab.c"
-    break;
 
-  case 3:
-#line 41 "parser.y"
-    {printf("maintime\n");}
-#line 1503 "y.tab.c"
-    break;
-
-  case 8:
-#line 55 "parser.y"
-    {printf("chungus\n");}
-#line 1509 "y.tab.c"
-    break;
-
-  case 26:
-#line 105 "parser.y"
-    {printf("wowa\n");}
-#line 1515 "y.tab.c"
-    break;
-
-  case 28:
-#line 109 "parser.y"
-    {printf("yayayaa\n");}
-#line 1521 "y.tab.c"
-    break;
-
-  case 44:
-#line 138 "parser.y"
-    {printf("woah %d\n", yylineno);}
-#line 1527 "y.tab.c"
-    break;
-
-
-#line 1531 "y.tab.c"
+#line 1495 "y.tab.c"
 
       default: break;
     }
