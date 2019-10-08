@@ -87,11 +87,11 @@ extern int yydebug;
     NEW = 293,
     THIS = 294,
     RETURN = 295,
-    INTEGER_LITERAL = 296,
-    LENGTH = 297,
-    ELSE = 298,
-    BRACKETS = 299,
-    WORD = 300
+    LENGTH = 296,
+    ELSE = 297,
+    BRACKETS = 298,
+    WORD = 299,
+    INTEGER_LITERAL = 300
   };
 #endif
 /* Tokens.  */
@@ -133,17 +133,17 @@ extern int yydebug;
 #define NEW 293
 #define THIS 294
 #define RETURN 295
-#define INTEGER_LITERAL 296
-#define LENGTH 297
-#define ELSE 298
-#define BRACKETS 299
-#define WORD 300
+#define LENGTH 296
+#define ELSE 297
+#define BRACKETS 298
+#define WORD 299
+#define INTEGER_LITERAL 300
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 73 "parser.y"
+#line 72 "parser.y"
 
 	int num;
 	char* str;

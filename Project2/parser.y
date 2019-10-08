@@ -39,7 +39,7 @@ sym* search(char* name){
 void printall(){
 	sym* current = head->next;
 	while(current!=NULL){
-		printf("%s\n", current->name);
+		printf("%s\t%d\n", current->name, current->value);
 		current = current->next;
 	}
 }
@@ -63,12 +63,11 @@ int main(int argc, char** argv){
 	yyin = file;
 	yyparse();
 	fclose(file);
-	printall();
-	
+	printall();	
 }
 
 %}
-%token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN INTEGER_LITERAL LENGTH ELSE BRACKETS
+%token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER STRING_LITERAL CLASS IF WHILE NOT TRUE FALSE PRIMETYPE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN LENGTH ELSE BRACKETS
 
 %union{
 	int num;
@@ -76,8 +75,10 @@ int main(int argc, char** argv){
 }
 
 %token<str> WORD
+%token<num> INTEGER_LITERAL
 
-%type<str> id
+%type<str> LeftValue
+%type<num> ExpOp Exp NewFunc MethodCall id VarInitList VarInit VarMethodDecl VarOrMethod MethodDecl VarDecl
 
 %%
 
@@ -113,35 +114,28 @@ VarMethodDeclList:
 	;
 
 VarOrMethod:
-	Decl VarMethodDecl		//{insert($2);} //{printf("%s\n", &$2);}
-	| PUBLIC Decl MethodDecl
-	;
+	Type WORD VarMethodDecl		{if(search($2)==NULL){insert($2);} search($2)->value=$3;}	//adds first var to table
+	| PUBLIC Type WORD MethodDecl	{if(search($3)==NULL){insert($3);} search($3)->value=$4;}
 
-Decl:
-	Type id {
-			if(search($2)==NULL){	//checks if symbol is already in table
-				insert($2);
-			}
-		}
 	;
 
 VarMethodDecl:
-	VarDecl
+	VarDecl					{$$ = $1;}
 	| MethodDecl
 	;
 
 VarDecl:
-	VarInitList SEMICOLON
+	VarInitList SEMICOLON			{$$ = $1;}
 	;
 
 VarInitList:
-	VarInit
-	| VarInit COMMA id VarInitList
+	VarInit					{$$ = $1;}
+	| VarInit COMMA WORD VarInitList	{$$ = $1; if(search($3)==NULL){insert($3);} search($3)->value = $4;}	//adds more vars to table
 	;
 
 VarInit:
-	EQUAL Exp
-	| /*empty*/
+	EQUAL Exp			{$$ = $2;}
+	| /*empty*/			{$$ = 0;}	//dummy value
 	;
 
 MethodDecl:
@@ -172,13 +166,13 @@ StatementList:
 	;
 
 Statement:
-	Decl VarDecl
+	Type WORD VarDecl			{if(search($2)==NULL){insert($2);} search($2)->value = $3;}
 	| LBRACE StatementList RBRACE
 	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
 	| WHILE LPARENTH Exp RPARENTH Statement
 	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON
-	| LeftValue EQUAL Exp SEMICOLON
+	| LeftValue EQUAL Exp SEMICOLON		{search($1)->value = $3;}
 	| LeftValue2 EQUAL Exp SEMICOLON
 	| RETURN Exp SEMICOLON
 	| MethodCall SEMICOLON
@@ -191,7 +185,7 @@ MethodCall:
 	;
 
 LeftValue:
-	id
+	WORD				{$$ = $1;}
 	| LeftValue LBRACK Index
 	| LeftValue DOT id
 	| NewFunc DOT id
@@ -217,19 +211,19 @@ ExpList:
 	;
 
 ExpOp:
-	NOT ExpOp
-	| LPARENTH Exp RPARENTH
+	NOT ExpOp			{$$ = !$2;}
+	| LPARENTH Exp RPARENTH		{$$ = $2;}
 	| STRING_LITERAL
-	| TRUE
-	| FALSE
-	| INTEGER_LITERAL
+	| TRUE				{$$ = 1;}
+	| FALSE				{$$ = 0;}
+	| INTEGER_LITERAL		{$$ = $1;}
 	| MethodCall
 	| NewFunc
 	| NEW Type LBRACK IndexList
-	| LeftValue
+	| LeftValue			{$$ = search($1)->value;}
 	| LeftValue DOT LENGTH
-	| PLUS ExpOp
-	| MINUS ExpOp
+	| PLUS ExpOp			{$$ = $2;}
+	| MINUS ExpOp			{$$ = $2 * (-1);}
 	;
 
 NewFunc:
@@ -237,25 +231,27 @@ NewFunc:
 	;
 
 Exp:
-	Exp op ExpOp
-	| ExpOp
+	Exp AND ExpOp			{$$ = $1 && $3;}
+	| Exp OR ExpOp			{$$ = $1 || $3;}
+	| Exp LESS ExpOp		{$$ = $1 < $3;}
+	| Exp GREAT ExpOp		{$$ = $1 > $3;}
+	| Exp LESSEQ ExpOp		{$$ = $1 <= $3;}
+	| Exp GREATEQ ExpOp		{$$ = $1 >= $3;}
+	| Exp EQUIVALENT ExpOp		{$$ = $1 == $3;}
+	| Exp NOTEQUAL ExpOp		{$$ = $1 != $3;}
+	| Exp STAR ExpOp		{$$ = $1 * $3;}
+	| Exp SLASH ExpOp		{$$ = $1 / $3;}
+	| Exp PLUS ExpOp		{$$ = $1 + $3;}
+	| Exp MINUS ExpOp		{$$ = $1 - $3;}
+	| ExpOp				{$$ = $1;}
 	;
 
 id:
-	WORD		{$$ = $1;}
+	WORD{
+		if(search($1)!=NULL){
+			$$ = search($1)->value;
+		} else{		//do something if not declared yet, idk what
+		}
+	}
 	;
 
-op:
-	AND
-	| OR
-	| LESS
-	| GREAT
-	| LESSEQ
-	| GREATEQ
-	| EQUIVALENT
-	| NOTEQUAL
-	| STAR
-	| SLASH
-	| PLUS
-	| MINUS
-	;
