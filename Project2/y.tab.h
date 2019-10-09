@@ -69,28 +69,28 @@ extern int yydebug;
     RPARENTH = 275,
     EXTENDS = 276,
     HEADER = 277,
-    STRING_LITERAL = 278,
-    CLASS = 279,
-    IF = 280,
-    WHILE = 281,
-    NOT = 282,
-    TRUE = 283,
-    FALSE = 284,
-    PRIMETYPE = 285,
-    PUBLIC = 286,
-    COMMA = 287,
-    EQUIVALENT = 288,
-    SEMICOLON = 289,
-    PRINT = 290,
-    PRINTLN = 291,
-    DOT = 292,
-    NEW = 293,
-    THIS = 294,
-    RETURN = 295,
-    LENGTH = 296,
-    ELSE = 297,
-    BRACKETS = 298,
-    WORD = 299,
+    CLASS = 278,
+    IF = 279,
+    WHILE = 280,
+    NOT = 281,
+    TRUE = 282,
+    FALSE = 283,
+    PRIMETYPE = 284,
+    PUBLIC = 285,
+    COMMA = 286,
+    EQUIVALENT = 287,
+    SEMICOLON = 288,
+    PRINT = 289,
+    PRINTLN = 290,
+    DOT = 291,
+    NEW = 292,
+    THIS = 293,
+    RETURN = 294,
+    LENGTH = 295,
+    ELSE = 296,
+    BRACKETS = 297,
+    WORD = 298,
+    STRING_LITERAL = 299,
     INTEGER_LITERAL = 300
   };
 #endif
@@ -115,28 +115,28 @@ extern int yydebug;
 #define RPARENTH 275
 #define EXTENDS 276
 #define HEADER 277
-#define STRING_LITERAL 278
-#define CLASS 279
-#define IF 280
-#define WHILE 281
-#define NOT 282
-#define TRUE 283
-#define FALSE 284
-#define PRIMETYPE 285
-#define PUBLIC 286
-#define COMMA 287
-#define EQUIVALENT 288
-#define SEMICOLON 289
-#define PRINT 290
-#define PRINTLN 291
-#define DOT 292
-#define NEW 293
-#define THIS 294
-#define RETURN 295
-#define LENGTH 296
-#define ELSE 297
-#define BRACKETS 298
-#define WORD 299
+#define CLASS 278
+#define IF 279
+#define WHILE 280
+#define NOT 281
+#define TRUE 282
+#define FALSE 283
+#define PRIMETYPE 284
+#define PUBLIC 285
+#define COMMA 286
+#define EQUIVALENT 287
+#define SEMICOLON 288
+#define PRINT 289
+#define PRINTLN 290
+#define DOT 291
+#define NEW 292
+#define THIS 293
+#define RETURN 294
+#define LENGTH 295
+#define ELSE 296
+#define BRACKETS 297
+#define WORD 298
+#define STRING_LITERAL 299
 #define INTEGER_LITERAL 300
 
 /* Value type.  */

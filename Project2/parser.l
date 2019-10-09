@@ -6,9 +6,10 @@
 %option yylineno
 
 %%
+\r	//Removes carriages from test file
 "//"[^\n]*\n			//Comment
 "/*"([^*]|\*+[^*/])*\*+"/"	/*Comment*/
-\"[^"]*\"			return STRING_LITERAL;
+\"[^"]*\"			{yylval.str=malloc(yyleng-1); memcpy(yylval.str, yytext+1, yyleng-2 ); yylval.str[yyleng-2]=0; return STRING_LITERAL;}
 [0-9]+				{yylval.num = atoi(yytext); return INTEGER_LITERAL;}
 "&&"				return AND;
 "||"				return OR;
