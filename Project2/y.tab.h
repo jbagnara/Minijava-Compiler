@@ -43,6 +43,23 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 135 "parser.y"
+
+	typedef enum varType2{
+		UNDEC2 = -1,
+		STRING2 = 0,
+		INT2 = 1
+	} varType2;
+	typedef struct nonTerm2 {
+		varType2 type;
+		union value2{
+			char* str;
+			int num;
+		} value;
+	} nonTerm2;
+
+#line 63 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -75,22 +92,22 @@ extern int yydebug;
     NOT = 281,
     TRUE = 282,
     FALSE = 283,
-    PRIMETYPE = 284,
-    PUBLIC = 285,
-    COMMA = 286,
-    EQUIVALENT = 287,
-    SEMICOLON = 288,
-    PRINT = 289,
-    PRINTLN = 290,
-    DOT = 291,
-    NEW = 292,
-    THIS = 293,
-    RETURN = 294,
-    LENGTH = 295,
-    ELSE = 296,
-    BRACKETS = 297,
-    WORD = 298,
-    STRING_LITERAL = 299,
+    PUBLIC = 284,
+    COMMA = 285,
+    EQUIVALENT = 286,
+    SEMICOLON = 287,
+    PRINT = 288,
+    PRINTLN = 289,
+    DOT = 290,
+    NEW = 291,
+    THIS = 292,
+    RETURN = 293,
+    LENGTH = 294,
+    ELSE = 295,
+    BRACKETS = 296,
+    WORD = 297,
+    STRING_LITERAL = 298,
+    PRIMETYPE = 299,
     INTEGER_LITERAL = 300
   };
 #endif
@@ -121,34 +138,36 @@ extern int yydebug;
 #define NOT 281
 #define TRUE 282
 #define FALSE 283
-#define PRIMETYPE 284
-#define PUBLIC 285
-#define COMMA 286
-#define EQUIVALENT 287
-#define SEMICOLON 288
-#define PRINT 289
-#define PRINTLN 290
-#define DOT 291
-#define NEW 292
-#define THIS 293
-#define RETURN 294
-#define LENGTH 295
-#define ELSE 296
-#define BRACKETS 297
-#define WORD 298
-#define STRING_LITERAL 299
+#define PUBLIC 284
+#define COMMA 285
+#define EQUIVALENT 286
+#define SEMICOLON 287
+#define PRINT 288
+#define PRINTLN 289
+#define DOT 290
+#define NEW 291
+#define THIS 292
+#define RETURN 293
+#define LENGTH 294
+#define ELSE 295
+#define BRACKETS 296
+#define WORD 297
+#define STRING_LITERAL 298
+#define PRIMETYPE 299
 #define INTEGER_LITERAL 300
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 72 "parser.y"
+#line 150 "parser.y"
 
 	int num;
 	char* str;
+	nonTerm2 term;
+	varType2 type;
 
-#line 152 "y.tab.h"
+#line 171 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

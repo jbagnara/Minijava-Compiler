@@ -35,7 +35,7 @@
 ","				return COMMA;
 "."				return DOT;
 ";"				return SEMICOLON;
-"int"|"boolean"|"String"	return PRIMETYPE;
+"int"|"boolean"|"String"	{yylval.str=strdup(yytext); return PRIMETYPE;}
 "public"			return PUBLIC;
 "extends"			return EXTENDS;
 "class"				return CLASS;

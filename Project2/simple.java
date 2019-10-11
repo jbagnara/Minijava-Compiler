@@ -27,5 +27,6 @@ class simple {
             System.out.println(x+y);
             System.out.print("x*y-(b-1) = ");
             System.out.print(x*y-(b-1));
+		System.out.println("\nbig chungus");
     }
 }

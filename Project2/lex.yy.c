@@ -857,7 +857,7 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 9 "parser.l"
-
+//Removes carriages from test file
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
@@ -1005,7 +1005,7 @@ return SEMICOLON;
 case 30:
 YY_RULE_SETUP
 #line 38 "parser.l"
-return PRIMETYPE;
+{yylval.str=strdup(yytext); return PRIMETYPE;}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
