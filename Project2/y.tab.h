@@ -44,22 +44,31 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 135 "parser.y"
+#line 214 "parser.y"
 
-	typedef enum varType2{
-		UNDEC2 = -1,
-		STRING2 = 0,
-		INT2 = 1
-	} varType2;
-	typedef struct nonTerm2 {
-		varType2 type;
-		union value2{
+	typedef enum varTypeY{
+		UNDECY = -1,
+		STRINGY = 0,
+		INTY = 1
+	} varTypeY;
+	typedef struct nonTermY {
+		varTypeY type;
+		union valueY{
 			char* str;
 			int num;
 		} value;
-	} nonTerm2;
+	} nonTermY;
+	typedef struct astY {
+		int isLeaf;
+		union nodeY{
+			char op;
+			nonTermY leaf;
+		} node;
+		struct astY* node1;
+		struct astY* node2;
+	} astY;
 
-#line 63 "y.tab.h"
+#line 72 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -160,14 +169,15 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 150 "parser.y"
+#line 238 "parser.y"
 
 	int num;
 	char* str;
-	nonTerm2 term;
-	varType2 type;
+	nonTermY term;
+	varTypeY type;
+	astY* tree;
 
-#line 171 "y.tab.h"
+#line 181 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

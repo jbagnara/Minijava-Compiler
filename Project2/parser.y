@@ -22,6 +22,85 @@ typedef struct nonTerm {
 	} value;
 } nonTerm;
 
+nonTerm* mkNonTerm(int type, void* val){
+	nonTerm* term = malloc(sizeof(nonTerm));
+	term->type = type;
+
+	switch(type){
+	case 0:
+		term->value.str = (char*)val;
+		break;
+	case 1:
+		term->value.num = *(int*)val;
+		break;
+	}
+
+	return term;
+}
+
+typedef struct ast {
+	int isLeaf;
+	union node{
+		char op;
+		nonTerm* leaf;
+	} node;
+	struct ast* node1;
+	struct ast* node2;
+} ast;
+
+ast* mkLeaf(nonTerm* leaf) {
+	ast* tree = malloc(sizeof(ast));
+	tree->isLeaf = 1;
+	tree->node.leaf = leaf;
+	return tree;
+}
+
+ast* mkNode(ast* node1, ast* node2, char op){
+	ast* tree = malloc(sizeof(ast));
+	if(op=='*' || op=='/'){
+		ast* temp = node1;		//parent of rightmost leaf on left subtree
+		while(temp->node2->node2!=NULL)
+			temp = temp->node2;
+		ast* temp2 = temp->node2;	//rightmost leaf on left subtree
+		tree->isLeaf = 0;
+		tree->node.op = op;
+		temp->node2 = tree;
+		tree->node1 = temp2;
+		tree->node2 = node2;
+		tree = temp;
+	} else {
+		tree->isLeaf = 0;
+		tree->node.op = op;
+		tree->node1 = node1;
+		tree->node2 = node2;
+	}
+	return tree;
+}
+
+nonTerm* solveAst(ast* tree){
+
+	if(tree->isLeaf){
+		return tree->node.leaf;
+	} else {
+		int val1 = solveAst(tree->node1)->value.num;
+		int val2 = solveAst(tree->node2)->value.num;
+		int res;
+		switch(tree->node.op){
+		case '*':
+			res = val1*val2;
+			break;
+		case '/':
+			break;
+		case '+':
+			res = val1+val2;
+			break;
+		case '-':
+			break;
+		}
+		return mkNonTerm(INT, &res);
+	}
+}
+
 typedef struct symbol {
 	char name[50];
 	nonTerm* term;
@@ -133,32 +212,43 @@ int main(int argc, char** argv){
 %token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER CLASS IF WHILE NOT TRUE FALSE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN LENGTH ELSE BRACKETS
 
 %code requires{
-	typedef enum varType2{
-		UNDEC2 = -1,
-		STRING2 = 0,
-		INT2 = 1
-	} varType2;
-	typedef struct nonTerm2 {
-		varType2 type;
-		union value2{
+	typedef enum varTypeY{
+		UNDECY = -1,
+		STRINGY = 0,
+		INTY = 1
+	} varTypeY;
+	typedef struct nonTermY {
+		varTypeY type;
+		union valueY{
 			char* str;
 			int num;
 		} value;
-	} nonTerm2;
+	} nonTermY;
+	typedef struct astY {
+		int isLeaf;
+		union nodeY{
+			char op;
+			nonTermY leaf;
+		} node;
+		struct astY* node1;
+		struct astY* node2;
+	} astY;
 }
 
 %union{
 	int num;
 	char* str;
-	nonTerm2 term;
-	varType2 type;
+	nonTermY term;
+	varTypeY type;
+	astY* tree;
 }
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
 
 %type<str> LeftValue
-%type<term> Exp ExpOp VarInit VarInitList NewFunc MethodCall id VarMethodDecl VarOrMethod MethodDecl VarDecl
+%type<term> VarInit VarInitList NewFunc MethodCall id VarMethodDecl VarOrMethod MethodDecl VarDecl
+%type<tree> Exp ExpOp
 %type<type> Type
 
 
@@ -218,14 +308,14 @@ VarInitList:
 		} 
 		if(search($3)->term->type==$4.type)
 			memcpy((void*)search($3)->term, (void*)&$4, sizeof(nonTerm));
-		else if($4.type!=UNDEC2)
+		else if($4.type!=UNDECY)
 			typeViolation();
 	}	//adds more vars to table		CHANGE THIS
 	;
 
 VarInit:
-	EQUAL Exp			{$$ = $2;}
-	| /*empty*/			{$$.type=UNDEC2;}	//dummy value
+	EQUAL Exp			{$$ = *(nonTermY*)solveAst((ast*)$2);}
+	//| /*empty*/			{$$.type=UNDEC2;}	//dummy value
 	;
 
 MethodDecl:
@@ -265,7 +355,9 @@ Statement:
 	| LBRACE StatementList RBRACE		
 	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
 	| WHILE LPARENTH Exp RPARENTH Statement
-	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON		{printExp((nonTerm*)&$3, 1);}
+	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON		{
+		printExp(solveAst((ast*)$3), 1);
+	}
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON			{printExp((nonTerm*)&$3, 0);}
 	| LeftValue EQUAL Exp SEMICOLON		{memcpy((void*)search($1)->term, (void*)&$3, sizeof(nonTerm));}
 	| LeftValue2 EQUAL Exp SEMICOLON
@@ -313,17 +405,17 @@ ExpList:
 ExpOp:
 	NOT ExpOp			{}//{$$ = !$2;}
 	| LPARENTH Exp RPARENTH		{$$ = $2;}
-	| STRING_LITERAL		{$$.value.str = $1; $$.type = STRING2;}
+	| STRING_LITERAL		{$$ = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)$1));}//{$$.value.str = $1; $$.type = STRING2;}
 	| TRUE				{}//{$$ = 1;}
 	| FALSE				{}//{$$ = 0;}
-	| INTEGER_LITERAL		{$$.value.num = $1; $$.type = INT2;}
+	| INTEGER_LITERAL		{$$ = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&$1));}//{$$.value.num = $1; $$.type = INT2;}
 	| MethodCall			{}
 	| NewFunc			{}
 	| NEW Type LBRACK IndexList	{}
-	| LeftValue			{if(search($1)!=NULL){memcpy((void*)&$$, (void*)search($1)->term, sizeof(nonTerm));}}
+	| LeftValue			{if(search($1)!=NULL){$$ = (astY*)mkLeaf((nonTerm*)search($1)->term);}}
 	| LeftValue DOT LENGTH		{}
-	| PLUS ExpOp			{$$.value.num = $2.value.num;}
-	| MINUS ExpOp			{$$.value.num = $2.value.num * (-1);}
+	//| PLUS ExpOp			{$$.value.num = $2.value.num;}
+	//| MINUS ExpOp			{$$.value.num = $2.value.num * (-1);}
 	;
 
 NewFunc:
@@ -339,12 +431,12 @@ Exp:
 	| Exp GREATEQ ExpOp		//{$$ = $1 >= $3;}
 	| Exp EQUIVALENT ExpOp		//{$$ = $1 == $3;}
 	| Exp NOTEQUAL ExpOp		//{$$ = $1 != $3;}
-	| Exp STAR ExpOp		{$$.value.num = $1.value.num * $3.value.num;}
-	| Exp SLASH ExpOp		{$$.value.num = $1.value.num / $3.value.num;}
+	| Exp STAR ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
+	//| Exp SLASH ExpOp		{$$.value.num = $1.value.num / $3.value.num;}
 //{$$ = $1 / $3;}
-	| Exp PLUS ExpOp		{$$.value.num = $1.value.num + $3.value.num;}
+	| Exp PLUS ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '+');}
 //{$$ = $1 + $3;}
-	| Exp MINUS ExpOp		{$$.value.num = $1.value.num - $3.value.num;}
+	//| Exp MINUS ExpOp		{$$.value.num = $1.value.num - $3.value.num;}
 //{$$ = $1 - $3;}
 	| ExpOp				{$$ = $1;}
 //{$$ = $1;}
