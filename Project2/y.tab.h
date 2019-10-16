@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 214 "parser.y"
+#line 201 "parser.y"
 
 	typedef enum varTypeY{
 		UNDECY = -1,
@@ -68,7 +68,13 @@ extern int yydebug;
 		struct astY* node2;
 	} astY;
 
-#line 72 "y.tab.h"
+	typedef struct symbolY {
+		char* name;
+		nonTermY* term;
+		struct symbol* next;
+	} symY;
+
+#line 78 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -169,15 +175,16 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 238 "parser.y"
+#line 231 "parser.y"
 
 	int num;
 	char* str;
 	nonTermY term;
 	varTypeY type;
 	astY* tree;
+	symY* termList;
 
-#line 181 "y.tab.h"
+#line 188 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

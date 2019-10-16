@@ -57,23 +57,10 @@ ast* mkLeaf(nonTerm* leaf) {
 
 ast* mkNode(ast* node1, ast* node2, char op){
 	ast* tree = malloc(sizeof(ast));
-	if(op=='*' || op=='/'){
-		ast* temp = node1;		//parent of rightmost leaf on left subtree
-		while(temp->node2->node2!=NULL)
-			temp = temp->node2;
-		ast* temp2 = temp->node2;	//rightmost leaf on left subtree
-		tree->isLeaf = 0;
-		tree->node.op = op;
-		temp->node2 = tree;
-		tree->node1 = temp2;
-		tree->node2 = node2;
-		tree = temp;
-	} else {
-		tree->isLeaf = 0;
-		tree->node.op = op;
-		tree->node1 = node1;
-		tree->node2 = node2;
-	}
+	tree->isLeaf = 0;
+	tree->node.op = op;
+	tree->node1 = node1;
+	tree->node2 = node2;
 	return tree;
 }
 
@@ -233,6 +220,12 @@ int main(int argc, char** argv){
 		struct astY* node1;
 		struct astY* node2;
 	} astY;
+
+	typedef struct symbolY {
+		char* name;
+		nonTermY* term;
+		struct symbol* next;
+	} symY;
 }
 
 %union{
@@ -241,14 +234,16 @@ int main(int argc, char** argv){
 	nonTermY term;
 	varTypeY type;
 	astY* tree;
+	symY* termList;
 }
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
 
 %type<str> LeftValue
-%type<term> VarInit VarInitList NewFunc MethodCall id VarMethodDecl VarOrMethod MethodDecl VarDecl
-%type<tree> Exp ExpOp
+%type<term> NewFunc MethodCall id VarOrMethod
+%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit
+%type<tree> Exp ExpP ExpP2 ExpOp 
 %type<type> Type
 
 
@@ -286,8 +281,40 @@ VarMethodDeclList:
 	;
 
 VarOrMethod:
-	Type WORD VarMethodDecl		{if(search($2)==NULL){insert((varType)$1, $2);} search($2)->term->value.num=$3.value.num;}	//adds first var to table
-	| PUBLIC Type WORD MethodDecl	{if(search($3)==NULL){insert((varType)$2, $3);} search($3)->term->value.num=$4.value.num;}
+	Type WORD VarMethodDecl		{			//DO INSERTIONS HERE***
+		symY* head = $3;
+		head->name = $2;
+		while(head!=NULL){
+			if(search(head->name)==NULL){	//Does not exist in sym table
+				insert((varType)$1, head->name);
+				search(head->name)->term = (nonTerm*)head->term;
+			} else {
+				typeViolation();
+			}
+			head = (symY*)head->next;
+		}
+
+		if(search($2)==NULL){
+			insert((varType)$1, $2);
+		} 
+		//search($2)->term->value.num=$3.value.num;
+	}	//adds first var to table
+	| PUBLIC Type WORD MethodDecl	{
+		symY* head = $4;
+		head->name = $3;
+		while(head!=NULL){
+			if(search(head->name)==NULL){	//Does not exist in sym table
+				insert((varType)$1, head->name);
+				search(head->name)->term = head->term;
+			} else {
+				typeViolation();
+			}
+		}
+
+		if(search($3)==NULL){
+			insert((varType)$2, $3);
+		} 
+	}
 	;
 
 VarMethodDecl:
@@ -300,22 +327,29 @@ VarDecl:
 	;
 
 VarInitList:
-	VarInit					{$$ = $1;}
-	| VarInit COMMA WORD VarInitList	
-		{$$ = $1; 
-		if(search($3)==NULL) {
-			insert(INT, $3);
-		} 
-		if(search($3)->term->type==$4.type)
-			memcpy((void*)search($3)->term, (void*)&$4, sizeof(nonTerm));
-		else if($4.type!=UNDECY)
-			typeViolation();
+	VarInit	/*First does not have name yet*/{
+		/*symY* var = malloc(sizeof(symY));
+		var->term = &$1;
+		$$ = var;*/
+		$$ = $1;
+	}
+	| VarInit COMMA WORD VarInitList	{
+		symY* var = malloc(sizeof(symY));
+		var->name = $3;
+		var->term = &$1;
+		var->next = $4;
+		$1->next = var;
+		$$ = $1;
 	}	//adds more vars to table		CHANGE THIS
 	;
 
 VarInit:
-	EQUAL Exp			{$$ = *(nonTermY*)solveAst((ast*)$2);}
-	//| /*empty*/			{$$.type=UNDEC2;}	//dummy value
+	EQUAL ExpP			{
+		//$$ = *(nonTermY*)solveAst((ast*)$2);
+		symY* var = malloc(sizeof(symY));
+		var->term = (nonTermY*)solveAst((ast*)$2);
+	}
+	| /*empty*/			//{$$.type=UNDECY;}	//dummy value
 	;
 
 MethodDecl:
@@ -347,10 +381,21 @@ StatementList:
 
 Statement:
 	Type WORD VarDecl			{
+		symY* head = $3;
+		head->name = $2;
+		while(head!=NULL){
+			if(search(head->name)==NULL){	//Does not exist in sym table
+				insert((varType)$1, head->name);
+				search(head->name)->term = (nonTerm*)head->term;
+			} else {
+				typeViolation();
+			}
+			head = (symY*)head->next;
+		}
+
 		if(search($2)==NULL){
-			insert($1, $2);
+			insert((varType)$1, $2);
 		} 
-		search($2)->term->value.num = $3.value.num;
 	}
 	| LBRACE StatementList RBRACE		
 	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
@@ -414,6 +459,7 @@ ExpOp:
 	| NEW Type LBRACK IndexList	{}
 	| LeftValue			{if(search($1)!=NULL){$$ = (astY*)mkLeaf((nonTerm*)search($1)->term);}}
 	| LeftValue DOT LENGTH		{}
+	
 	//| PLUS ExpOp			{$$.value.num = $2.value.num;}
 	//| MINUS ExpOp			{$$.value.num = $2.value.num * (-1);}
 	;
@@ -422,23 +468,32 @@ NewFunc:
 	NEW id LPARENTH RPARENTH	{}
 	;
 
+ExpP2: 
+	ExpP2 AND ExpOp			//{$$ = $1 && $3;}
+	| ExpP2 OR ExpOp			//{$$ = $1 || $3;}
+	| ExpP2 LESS ExpOp		//{$$ = $1 < $3;}
+	| ExpP2 GREAT ExpOp		//{$$ = $1 > $3;}
+	| ExpP2 LESSEQ ExpOp		//{$$ = $1 <= $3;}
+	| ExpP2 GREATEQ ExpOp		//{$$ = $1 >= $3;}
+	| ExpP2 EQUIVALENT ExpOp		//{$$ = $1 == $3;}
+	| ExpP2 NOTEQUAL ExpOp		//{$$ = $1 != $3;}
+	| ExpOp				{$$ = $1;}
+	;
+
+ExpP:
+	ExpP STAR ExpOp			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
+	| ExpP SLASH ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '/');}
+	| ExpP2				{$$ = $1;}
+	;
+
 Exp:
-	Exp AND ExpOp			//{$$ = $1 && $3;}
-	| Exp OR ExpOp			//{$$ = $1 || $3;}
-	| Exp LESS ExpOp		//{$$ = $1 < $3;}
-	| Exp GREAT ExpOp		//{$$ = $1 > $3;}
-	| Exp LESSEQ ExpOp		//{$$ = $1 <= $3;}
-	| Exp GREATEQ ExpOp		//{$$ = $1 >= $3;}
-	| Exp EQUIVALENT ExpOp		//{$$ = $1 == $3;}
-	| Exp NOTEQUAL ExpOp		//{$$ = $1 != $3;}
-	| Exp STAR ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
 	//| Exp SLASH ExpOp		{$$.value.num = $1.value.num / $3.value.num;}
 //{$$ = $1 / $3;}
-	| Exp PLUS ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '+');}
+	Exp PLUS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '+');}
 //{$$ = $1 + $3;}
-	//| Exp MINUS ExpOp		{$$.value.num = $1.value.num - $3.value.num;}
+	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '-');}
 //{$$ = $1 - $3;}
-	| ExpOp				{$$ = $1;}
+	| ExpP				{$$ = $1;}
 //{$$ = $1;}
 	;
 
