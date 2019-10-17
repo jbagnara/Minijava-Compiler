@@ -15,10 +15,27 @@ void typeViolation(){
 }
 
 typedef enum varType{
-	UNDEC = -1,
-	STRING = 0,
-	INT = 1
+	UNDEC	 = -1,
+	STRING	 = 0,
+	INT	 = 1,
+	BOOL	 = 2
 } varType;
+typedef enum opType{
+	ANDy		= 0,
+	ORy		= 1,
+	LESSy		= 2,
+	GREATy		= 3,
+	LESSEQy		= 4,
+	GREATEQy	= 5,
+	EQUIVALENTy	= 6,
+	NOTEQUALy	= 7,
+	EQUALy		= 8,
+	NOTy		= 9,
+	PLUSy		= 10,
+	MINUSy		= 11,
+	STARy		= 12,
+	SLASHy		= 13
+} opType;
 
 typedef struct nonTerm {
 	varType type;
@@ -28,15 +45,24 @@ typedef struct nonTerm {
 	} value;
 } nonTerm;
 
+typedef struct nonTermArr {
+	int length;
+	varType type;
+	nonTerm** term;
+} nonTermArr;
+
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
 	term->type = type;
 
 	switch(type){
-	case 0:
+	case STRING:
 		term->value.str = (char*)val;
 		break;
-	case 1:
+	case INT:
+		term->value.num = *(int*)val;
+		break;
+	case BOOL:
 		term->value.num = *(int*)val;
 		break;
 	}
@@ -47,7 +73,7 @@ nonTerm* mkNonTerm(int type, void* val){
 typedef struct ast {
 	int isLeaf;
 	union node{
-		char op;
+		opType op;
 		nonTerm* leaf;
 	} node;
 	struct ast* node1;
@@ -61,7 +87,7 @@ ast* mkLeaf(nonTerm* leaf) {
 	return tree;
 }
 
-ast* mkNode(ast* node1, ast* node2, char op){
+ast* mkNode(ast* node1, ast* node2, opType op){
 	ast* tree = malloc(sizeof(ast));
 	tree->isLeaf = 0;
 	tree->node.op = op;
@@ -80,7 +106,7 @@ void printAst(ast* tree){
 	}
 }
 
-nonTerm* solveAst(ast* tree){
+nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 
 	if(tree->isLeaf){
 		return tree->node.leaf;
@@ -91,25 +117,84 @@ nonTerm* solveAst(ast* tree){
 			typeViolation();
 	
 		switch(term1->type){
-		case INT:;
+		case INT:{
 			int val1 = term1->value.num;
 			int val2 = term2->value.num;
 			int res;
 			switch(tree->node.op){
-			case '*':
+			case STARy:
 				res = val1*val2;
+				return mkNonTerm(INT, &res);
 				break;
-			case '/':
+			case SLASHy:
 				res = val1/val2;
+				return mkNonTerm(INT, &res);
 				break;
-			case '+':
+			case PLUSy:
 				res = val1+val2;
+				return mkNonTerm(INT, &res);
 				break;
-			case '-':
+			case MINUSy:
 				res = val1-val2;
+				return mkNonTerm(INT, &res);
 				break;
+			case LESSy:
+				res = val1<val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case GREATy:
+				res = val1>val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case LESSEQy:
+				res = val1<=val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case GREATEQy:
+				res = val1>=val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case EQUIVALENTy:
+				res = val1==val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case NOTEQUALy:
+				res = val1!=val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			default:
+				printf("invalid int operation %d\n", term1->type );
+				typeViolation();
 			}
-			return mkNonTerm(INT, &res);
+		break;
+		}
+		case BOOL:{
+			int val1 = term1->value.num;
+			int val2 = term2->value.num;
+			int res;
+			switch(tree->node.op){
+			case EQUIVALENTy:
+				res = val1==val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case NOTEQUALy:
+				res = val1!=val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case ANDy:
+				res = val1&&val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			case ORy:
+				res = val1||val2;
+				return mkNonTerm(BOOL, &res);
+				break;
+			default:
+				printf("invalid bool operation %d\n", term1->type );
+				typeViolation();
+			}
+		break;
+		}
 		default:
 			printf("type %d not implemented in ast\n", term1->type);
 			typeViolation();
@@ -171,27 +256,37 @@ int yywrap(){
 
 void printExp(nonTerm* term, int nline){
 	switch(term->type){
-	case 0:		//String
+	case STRING:		//String
 		if(nline)
 			printf("%s\n", term->value.str);
 		else	
 			printf("%s", term->value.str);
 		break;
-	case 1:		//int
+	case INT:		//int
 		if(nline)
 			printf("%d\n", term->value.num);
 		else	
 			printf("%d", term->value.num);
 		break;
-	
+	case BOOL:
+		if(nline)
+			printf("%d\n", term->value.num);
+		else	
+			printf("%d", term->value.num);
+		break;	
 	}
 }
 
 varType setType(char* type){
 	if(!(strcmp(type, "String"))){
-		return 0;
+		return STRING;
 	} else if(!(strcmp(type, "int"))){
-		return 1;
+		return INT;
+	} else if(!(strcmp(type, "boolean"))){
+		return BOOL;
+	} else{
+		printf("usermade types not implemented yet\n");
+		typeViolation();
 	}
 }
 
@@ -224,10 +319,28 @@ int main(int argc, char** argv){
 
 %code requires{
 	typedef enum varTypeY{
-		UNDECY = -1,
+		UNDECY 	= -1,
 		STRINGY = 0,
-		INTY = 1
+		INTY 	= 1,
+		BOOLY	= 2
 	} varTypeY;
+	typedef enum opTypeY{
+		ANDY		= 0,
+		ORY		= 1,
+		LESSY		= 2,
+		GREATY		= 3,
+		LESSEQY		= 4,
+		GREATEQY	= 5,
+		EQUIVALENTY	= 6,
+		NOTEQUALY	= 7,
+		EQUALY		= 8,
+		NOTY		= 9,
+		PLUSY		= 10,
+		MINUSY		= 11,
+		STARY		= 12,
+		SLASHY		= 13
+	} opTypeY;
+
 	typedef struct nonTermY {
 		varTypeY type;
 		union valueY{
@@ -238,7 +351,7 @@ int main(int argc, char** argv){
 	typedef struct astY {
 		int isLeaf;
 		union nodeY{
-			char op;
+			opTypeY op;
 			nonTermY* leaf;
 		} node;
 		struct astY* node1;
@@ -490,10 +603,18 @@ ExpList:
 ExpOp:
 	NOT ExpOp			{}//{$$ = !$2;}
 	| LPARENTH Exp RPARENTH		{$$ = $2;}
-	| STRING_LITERAL		{$$ = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)$1));}//{$$.value.str = $1; $$.type = STRING2;}
-	| TRUE				{}//{$$ = 1;}
-	| FALSE				{}//{$$ = 0;}
-	| INTEGER_LITERAL		{$$ = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&$1));}//{$$.value.num = $1; $$.type = INT2;}
+	| STRING_LITERAL {
+		$$ = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)$1));
+	}
+	| TRUE {
+		$$ = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&$1));
+	}
+	| FALSE	{
+		$$ = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&$1));
+	}
+	| INTEGER_LITERAL {
+		$$ = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&$1));
+	}
 	| MethodCall			{}
 	| NewFunc			{}
 	| NEW Type LBRACK IndexList	{}
@@ -509,29 +630,29 @@ NewFunc:
 	;
 
 ExpP2: 
-	ExpP2 AND ExpOp			//{$$ = $1 && $3;}
-	| ExpP2 OR ExpOp			//{$$ = $1 || $3;}
-	| ExpP2 LESS ExpOp		//{$$ = $1 < $3;}
-	| ExpP2 GREAT ExpOp		//{$$ = $1 > $3;}
-	| ExpP2 LESSEQ ExpOp		//{$$ = $1 <= $3;}
-	| ExpP2 GREATEQ ExpOp		//{$$ = $1 >= $3;}
-	| ExpP2 EQUIVALENT ExpOp		//{$$ = $1 == $3;}
-	| ExpP2 NOTEQUAL ExpOp		//{$$ = $1 != $3;}
+	ExpP2 AND ExpOp			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ANDY);}
+	| ExpP2 OR ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ORY);}
+	| ExpP2 LESS ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSY);}
+	| ExpP2 GREAT ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATY);}	
+	| ExpP2 LESSEQ ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSEQY);}	
+	| ExpP2 GREATEQ ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATEQY);}	
+	| ExpP2 EQUIVALENT ExpOp	{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, EQUIVALENTY);}
+	| ExpP2 NOTEQUAL ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, NOTEQUALY);}
 	| ExpOp				{$$ = $1;}
 	;
 
 ExpP:
-	ExpP STAR ExpP2			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
-	| ExpP SLASH ExpP2		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '/');}
+	ExpP STAR ExpP2			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, STARY);}
+	| ExpP SLASH ExpP2		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, SLASHY);}
 	| ExpP2				{$$ = $1;}
 	;
 
 Exp:
 	//| Exp SLASH ExpOp		{$$.value.num = $1.value.num / $3.value.num;}
 //{$$ = $1 / $3;}
-	Exp PLUS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '+');}
+	Exp PLUS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, PLUSY);}
 //{$$ = $1 + $3;}
-	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '-');}
+	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, MINUSY);}
 //{$$ = $1 - $3;}
 	| ExpP				{$$ = $1;}
 	;

@@ -1025,12 +1025,12 @@ return CLASS;
 case 34:
 YY_RULE_SETUP
 #line 42 "parser.l"
-return TRUE;
+{yylval.num = 1; return TRUE;}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
 #line 43 "parser.l"
-return FALSE;
+{yylval.num = 0; return FALSE;}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP

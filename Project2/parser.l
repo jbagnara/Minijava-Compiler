@@ -39,8 +39,8 @@
 "public"			return PUBLIC;
 "extends"			return EXTENDS;
 "class"				return CLASS;
-"true"				return TRUE;
-"false"				return FALSE;
+"true"				{yylval.num = 1; return TRUE;}
+"false"				{yylval.num = 0; return FALSE;}
 "new"				return NEW;
 "this"				return THIS;
 "return"			return RETURN;
