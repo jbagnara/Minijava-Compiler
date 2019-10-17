@@ -107,8 +107,8 @@ Grammar
    76      | ExpP2 NOTEQUAL ExpOp
    77      | ExpOp
 
-   78 ExpP: ExpP STAR ExpOp
-   79     | ExpP SLASH ExpOp
+   78 ExpP: ExpP STAR ExpP2
+   79     | ExpP SLASH ExpP2
    80     | ExpP2
 
    81 Exp: Exp PLUS ExpP
@@ -248,13 +248,13 @@ Nonterminals, with rules where they appear
         on right: 41 56
     ExpOp <tree> (72)
         on left: 57 58 59 60 61 62 63 64 65 66 67
-        on right: 57 69 70 71 72 73 74 75 76 77 78 79
+        on right: 57 69 70 71 72 73 74 75 76 77
     NewFunc <term> (73)
         on left: 68
         on right: 46 51 64
     ExpP2 <tree> (74)
         on left: 69 70 71 72 73 74 75 76 77
-        on right: 69 70 71 72 73 74 75 76 80
+        on right: 69 70 71 72 73 74 75 76 78 79 80
     ExpP <tree> (75)
         on left: 78 79 80
         on right: 18 78 79 81 82 83
@@ -847,8 +847,8 @@ State 59
 State 60
 
    18 VarInit: EQUAL ExpP .
-   78 ExpP: ExpP . STAR ExpOp
-   79     | ExpP . SLASH ExpOp
+   78 ExpP: ExpP . STAR ExpP2
+   79     | ExpP . SLASH ExpP2
 
     STAR   shift, and go to state 85
     SLASH  shift, and go to state 86
@@ -925,8 +925,8 @@ State 66
 
 State 67
 
-   78 ExpP: ExpP . STAR ExpOp
-   79     | ExpP . SLASH ExpOp
+   78 ExpP: ExpP . STAR ExpP2
+   79     | ExpP . SLASH ExpP2
    83 Exp: ExpP .
 
     STAR   shift, and go to state 85
@@ -1213,7 +1213,7 @@ State 84
 
 State 85
 
-   78 ExpP: ExpP STAR . ExpOp
+   78 ExpP: ExpP STAR . ExpP2
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -1227,13 +1227,14 @@ State 85
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 128
+    ExpOp       go to state 57
     NewFunc     go to state 58
+    ExpP2       go to state 128
 
 
 State 86
 
-   79 ExpP: ExpP SLASH . ExpOp
+   79 ExpP: ExpP SLASH . ExpP2
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -1247,8 +1248,9 @@ State 86
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 129
+    ExpOp       go to state 57
     NewFunc     go to state 58
+    ExpP2       go to state 129
 
 
 State 87
@@ -1685,14 +1687,48 @@ State 127
 
 State 128
 
-   78 ExpP: ExpP STAR ExpOp .
+   69 ExpP2: ExpP2 . AND ExpOp
+   70      | ExpP2 . OR ExpOp
+   71      | ExpP2 . LESS ExpOp
+   72      | ExpP2 . GREAT ExpOp
+   73      | ExpP2 . LESSEQ ExpOp
+   74      | ExpP2 . GREATEQ ExpOp
+   75      | ExpP2 . EQUIVALENT ExpOp
+   76      | ExpP2 . NOTEQUAL ExpOp
+   78 ExpP: ExpP STAR ExpP2 .
+
+    AND         shift, and go to state 77
+    OR          shift, and go to state 78
+    LESS        shift, and go to state 79
+    GREAT       shift, and go to state 80
+    LESSEQ      shift, and go to state 81
+    GREATEQ     shift, and go to state 82
+    NOTEQUAL    shift, and go to state 83
+    EQUIVALENT  shift, and go to state 84
 
     $default  reduce using rule 78 (ExpP)
 
 
 State 129
 
-   79 ExpP: ExpP SLASH ExpOp .
+   69 ExpP2: ExpP2 . AND ExpOp
+   70      | ExpP2 . OR ExpOp
+   71      | ExpP2 . LESS ExpOp
+   72      | ExpP2 . GREAT ExpOp
+   73      | ExpP2 . LESSEQ ExpOp
+   74      | ExpP2 . GREATEQ ExpOp
+   75      | ExpP2 . EQUIVALENT ExpOp
+   76      | ExpP2 . NOTEQUAL ExpOp
+   79 ExpP: ExpP SLASH ExpP2 .
+
+    AND         shift, and go to state 77
+    OR          shift, and go to state 78
+    LESS        shift, and go to state 79
+    GREAT       shift, and go to state 80
+    LESSEQ      shift, and go to state 81
+    GREATEQ     shift, and go to state 82
+    NOTEQUAL    shift, and go to state 83
+    EQUIVALENT  shift, and go to state 84
 
     $default  reduce using rule 79 (ExpP)
 
@@ -1993,8 +2029,8 @@ State 149
 
 State 150
 
-   78 ExpP: ExpP . STAR ExpOp
-   79     | ExpP . SLASH ExpOp
+   78 ExpP: ExpP . STAR ExpP2
+   79     | ExpP . SLASH ExpP2
    81 Exp: Exp PLUS ExpP .
 
     STAR   shift, and go to state 85
@@ -2005,8 +2041,8 @@ State 150
 
 State 151
 
-   78 ExpP: ExpP . STAR ExpOp
-   79     | ExpP . SLASH ExpOp
+   78 ExpP: ExpP . STAR ExpP2
+   79     | ExpP . SLASH ExpP2
    82 Exp: Exp MINUS ExpP .
 
     STAR   shift, and go to state 85

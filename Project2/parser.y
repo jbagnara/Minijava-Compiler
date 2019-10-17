@@ -8,6 +8,12 @@ extern FILE* yyin;
 extern int yyparse();
 extern int yylex();
 
+
+void typeViolation(){
+	printf("Type Violation in Line %d\n", yylineno);
+	exit(1);
+}
+
 typedef enum varType{
 	UNDEC = -1,
 	STRING = 0,
@@ -64,32 +70,55 @@ ast* mkNode(ast* node1, ast* node2, char op){
 	return tree;
 }
 
+void printAst(ast* tree){
+	if(tree->isLeaf)
+		printf("%d", tree->node.leaf->value.num);
+	else{
+		printf("%c", tree->node.op);
+		printAst(tree->node1);
+		printAst(tree->node2);
+	}
+}
+
 nonTerm* solveAst(ast* tree){
 
 	if(tree->isLeaf){
 		return tree->node.leaf;
 	} else {
-		int val1 = solveAst(tree->node1)->value.num;
-		int val2 = solveAst(tree->node2)->value.num;
-		int res;
-		switch(tree->node.op){
-		case '*':
-			res = val1*val2;
-			break;
-		case '/':
-			break;
-		case '+':
-			res = val1+val2;
-			break;
-		case '-':
-			break;
+		nonTerm* term1 = solveAst(tree->node1);
+		nonTerm* term2 = solveAst(tree->node2);
+		if(term1->type!=term2->type)
+			typeViolation();
+	
+		switch(term1->type){
+		case INT:;
+			int val1 = term1->value.num;
+			int val2 = term2->value.num;
+			int res;
+			switch(tree->node.op){
+			case '*':
+				res = val1*val2;
+				break;
+			case '/':
+				res = val1/val2;
+				break;
+			case '+':
+				res = val1+val2;
+				break;
+			case '-':
+				res = val1-val2;
+				break;
+			}
+			return mkNonTerm(INT, &res);
+		default:
+			printf("type %d not implemented in ast\n", term1->type);
+			typeViolation();
 		}
-		return mkNonTerm(INT, &res);
 	}
 }
 
 typedef struct symbol {
-	char name[50];
+	char* name;
 	nonTerm* term;
 	struct symbol* next;
 } sym;
@@ -101,7 +130,8 @@ void insert(varType type, char* name){
 	tail->next = malloc(sizeof(sym));
 	tail->next->term = malloc(sizeof(nonTerm));
 	tail = tail->next;
-	strcpy(tail->name, name);
+	tail->name = strdup(name);
+	//strcpy(tail->name, name);
 	tail->term->type = type;
 	//tail->value = value;
 }
@@ -120,16 +150,10 @@ sym* search(char* name){
 void printall(){
 	sym* current = head->next;
 	while(current!=NULL){
-		//printf("%s\t%d\n", current->name, current->value);
+		printf("%s  %d\n", current->name, current->term->value.num);
 		current = current->next;
 	}
-}
-
-void typeViolation(){
-	printf("Type Violation in Line %d\n", yylineno);
-	exit(1);
-}
-	
+}	
 
 void yyerror(const char* str){
 	printf("Syntax errors found in line number %d\n", yylineno);
@@ -215,7 +239,7 @@ int main(int argc, char** argv){
 		int isLeaf;
 		union nodeY{
 			char op;
-			nonTermY leaf;
+			nonTermY* leaf;
 		} node;
 		struct astY* node1;
 		struct astY* node2;
@@ -224,7 +248,7 @@ int main(int argc, char** argv){
 	typedef struct symbolY {
 		char* name;
 		nonTermY* term;
-		struct symbol* next;
+		struct symbolY* next;
 	} symY;
 }
 
@@ -286,17 +310,21 @@ VarOrMethod:
 		head->name = $2;
 		while(head!=NULL){
 			if(search(head->name)==NULL){	//Does not exist in sym table
-				insert((varType)$1, head->name);
-				search(head->name)->term = (nonTerm*)head->term;
+				if(head->term==NULL){	//Declared but not initialized
+					insert((varType)$1, head->name);
+				} else{
+					if(head->term->type!=$1){
+						typeViolation();		//Different types
+					}
+					insert((varType)$1, head->name);
+					search(head->name)->term = (nonTerm*)head->term;
+				}
 			} else {
-				typeViolation();
+				typeViolation();		//Already declared
 			}
 			head = (symY*)head->next;
 		}
 
-		if(search($2)==NULL){
-			insert((varType)$1, $2);
-		} 
 		//search($2)->term->value.num=$3.value.num;
 	}	//adds first var to table
 	| PUBLIC Type WORD MethodDecl	{
@@ -305,7 +333,7 @@ VarOrMethod:
 		while(head!=NULL){
 			if(search(head->name)==NULL){	//Does not exist in sym table
 				insert((varType)$1, head->name);
-				search(head->name)->term = head->term;
+				search(head->name)->term = (nonTerm*)head->term;
 			} else {
 				typeViolation();
 			}
@@ -334,11 +362,8 @@ VarInitList:
 		$$ = $1;
 	}
 	| VarInit COMMA WORD VarInitList	{
-		symY* var = malloc(sizeof(symY));
-		var->name = $3;
-		var->term = &$1;
-		var->next = $4;
-		$1->next = var;
+		$4->name = $3;
+		$1->next = $4;
 		$$ = $1;
 	}	//adds more vars to table		CHANGE THIS
 	;
@@ -348,8 +373,12 @@ VarInit:
 		//$$ = *(nonTermY*)solveAst((ast*)$2);
 		symY* var = malloc(sizeof(symY));
 		var->term = (nonTermY*)solveAst((ast*)$2);
+		$$ = var;
 	}
-	| /*empty*/			//{$$.type=UNDECY;}	//dummy value
+	| /*empty*/			{
+		symY* var = malloc(sizeof(symY));
+		$$ = var;
+	}	//dummy value
 	;
 
 MethodDecl:
@@ -385,18 +414,23 @@ Statement:
 		head->name = $2;
 		while(head!=NULL){
 			if(search(head->name)==NULL){	//Does not exist in sym table
-				insert((varType)$1, head->name);
-				search(head->name)->term = (nonTerm*)head->term;
+				if(head->term==NULL){	//Declared but not initialized
+					insert((varType)$1, head->name);
+				} else{
+					if(head->term->type!=$1){
+						typeViolation();		//Different types
+					}
+					insert((varType)$1, head->name);
+					search(head->name)->term = (nonTerm*)head->term;
+				}
 			} else {
-				typeViolation();
+				typeViolation();		//Already declared
 			}
 			head = (symY*)head->next;
 		}
 
-		if(search($2)==NULL){
-			insert((varType)$1, $2);
-		} 
-	}
+		//search($2)->term->value.num=$3.value.num;
+	}	//adds first var to table
 	| LBRACE StatementList RBRACE		
 	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
 	| WHILE LPARENTH Exp RPARENTH Statement
@@ -404,7 +438,13 @@ Statement:
 		printExp(solveAst((ast*)$3), 1);
 	}
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON			{printExp((nonTerm*)&$3, 0);}
-	| LeftValue EQUAL Exp SEMICOLON		{memcpy((void*)search($1)->term, (void*)&$3, sizeof(nonTerm));}
+	| LeftValue EQUAL Exp SEMICOLON		{
+		astY* x =$3;
+		char* y = $1;
+		search($1)->term = solveAst((ast*)$3);
+		//printall();
+		//memcpy((void*)search($1)->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));
+	}
 	| LeftValue2 EQUAL Exp SEMICOLON
 	| RETURN Exp SEMICOLON
 	| MethodCall SEMICOLON
@@ -481,8 +521,8 @@ ExpP2:
 	;
 
 ExpP:
-	ExpP STAR ExpOp			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
-	| ExpP SLASH ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '/');}
+	ExpP STAR ExpP2			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '*');}
+	| ExpP SLASH ExpP2		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '/');}
 	| ExpP2				{$$ = $1;}
 	;
 
@@ -494,7 +534,6 @@ Exp:
 	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, '-');}
 //{$$ = $1 - $3;}
 	| ExpP				{$$ = $1;}
-//{$$ = $1;}
 	;
 
 id:
