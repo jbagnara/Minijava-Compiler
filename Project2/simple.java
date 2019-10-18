@@ -1,8 +1,7 @@
 // This example contains straight-line assignment and printing statements in a single method, that is the main method
 class simple {
     public static void main(String [] args) {
-	    int x = 1;
-		int  y = 100, z;
+	    int x = 1, y = 100, z;
 	    z = x*y - (y - 1) + 1;
             System.out.println("This line should be printed. A bunch of expressions:");
             System.out.print("x = ");

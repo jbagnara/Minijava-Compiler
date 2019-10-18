@@ -18,8 +18,15 @@ typedef enum varType{
 	UNDEC	 = -1,
 	STRING	 = 0,
 	INT	 = 1,
-	BOOL	 = 2
+	BOOL	 = 2,
+	ARR	 = 3
 } varType;
+
+typedef struct arrType{
+	varType type;
+	int deg;
+} arrType;
+
 typedef enum opType{
 	ANDy		= 0,
 	ORy		= 1,
@@ -39,9 +46,11 @@ typedef enum opType{
 
 typedef struct nonTerm {
 	varType type;
+	int deg;
 	union value{
 		char* str;
 		int num;
+		struct nonTerm** arr;	
 	} value;
 } nonTerm;
 
@@ -51,24 +60,53 @@ typedef struct nonTermArr {
 	nonTerm** term;
 } nonTermArr;
 
+typedef struct numLinkList{
+	int num;
+	struct numLinkList* next;
+} numLinkList;
+
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
 	term->type = type;
-
-	switch(type){
-	case STRING:
-		term->value.str = (char*)val;
-		break;
-	case INT:
-		term->value.num = *(int*)val;
-		break;
-	case BOOL:
-		term->value.num = *(int*)val;
-		break;
+	term->deg = 1;
+	if(val==NULL){
+		term->value.str=NULL;
+	} else {
+		switch(type){
+		case STRING:
+			term->value.str = (char*)val;
+			break;
+		case INT:
+			term->value.num = *(int*)val;
+			break;
+		case BOOL:
+			term->value.num = *(int*)val;
+			break;
+		case ARR:
+			term->value.arr = calloc(*(int*)val, sizeof(nonTerm));
+			term->deg = *(int*)val;
+			break;
+		}
 	}
-
 	return term;
 }
+
+nonTerm* mkNonTermArr(int type, numLinkList* list){	//builds array given dimensions
+	if(list == NULL){
+		return mkNonTerm(type, NULL);		//leaf
+	}
+
+	nonTerm* arr = mkNonTerm(ARR, &list->num);
+	for(int x=0; x<list->num; x++){
+		arr->value.arr[x] = mkNonTermArr(type, list->next);
+	}
+	return arr;
+}
+
+nonTerm* searchNonTermArr(nonTerm* arr, int num){
+	return arr->value.arr[num];
+}
+
 
 typedef struct ast {
 	int isLeaf;
@@ -195,6 +233,8 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			}
 		break;
 		}
+		case ARR:
+			return mkNonTerm(ARR, tree->node.leaf);
 		default:
 			printf("type %d not implemented in ast\n", term1->type);
 			typeViolation();
@@ -273,7 +313,10 @@ void printExp(nonTerm* term, int nline){
 			printf("%d\n", term->value.num);
 		else	
 			printf("%d", term->value.num);
-		break;	
+		break;
+	case ARR:
+		printf("uhh\n");
+		typeViolation();	
 	}
 }
 
@@ -322,8 +365,15 @@ int main(int argc, char** argv){
 		UNDECY 	= -1,
 		STRINGY = 0,
 		INTY 	= 1,
-		BOOLY	= 2
+		BOOLY	= 2,
+		ARRY	= 3
 	} varTypeY;
+
+	typedef struct arrTypeY{
+		varTypeY type;
+		int deg;
+	} arrTypeY;
+
 	typedef enum opTypeY{
 		ANDY		= 0,
 		ORY		= 1,
@@ -340,14 +390,28 @@ int main(int argc, char** argv){
 		STARY		= 12,
 		SLASHY		= 13
 	} opTypeY;
+	
+	typedef struct numLinkListY{
+		int num;
+		struct numLinkListY* next;
+	} numLinkListY;
 
 	typedef struct nonTermY {
 		varTypeY type;
+		int degY;
 		union valueY{
 			char* str;
 			int num;
+			struct nonTerm** arr;	
 		} value;
 	} nonTermY;
+
+	typedef struct nonTermArrY {
+		int length;
+		varTypeY type;
+		nonTermY** term;
+	} nonTermArrY;
+
 	typedef struct astY {
 		int isLeaf;
 		union nodeY{
@@ -367,9 +431,10 @@ int main(int argc, char** argv){
 
 %union{
 	int num;
+	numLinkListY* numList;
 	char* str;
 	nonTermY term;
-	varTypeY type;
+	arrTypeY* type;
 	astY* tree;
 	symY* termList;
 }
@@ -377,9 +442,10 @@ int main(int argc, char** argv){
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
 
-%type<str> LeftValue
+%type<num> BracketsList Index
+%type<numList> IndexList
 %type<term> NewFunc MethodCall id VarOrMethod
-%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit
+%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit LeftValue LeftValue2
 %type<tree> Exp ExpP ExpP2 ExpOp 
 %type<type> Type
 
@@ -424,15 +490,17 @@ VarOrMethod:
 		while(head!=NULL){
 			if(search(head->name)==NULL){	//Does not exist in sym table
 				if(head->term==NULL){	//Declared but not initialized
-					insert((varType)$1, head->name);
+					insert($1->type, head->name);
 				} else{
-					if(head->term->type!=$1){
+					if(head->term->type!=$1->type){
+						printf("Incompatible types\n");
 						typeViolation();		//Different types
 					}
-					insert((varType)$1, head->name);
+					insert((varType)$1->type, head->name);
 					search(head->name)->term = (nonTerm*)head->term;
 				}
 			} else {
+				printf("Var already declared\n");
 				typeViolation();		//Already declared
 			}
 			head = (symY*)head->next;
@@ -441,20 +509,7 @@ VarOrMethod:
 		//search($2)->term->value.num=$3.value.num;
 	}	//adds first var to table
 	| PUBLIC Type WORD MethodDecl	{
-		symY* head = $4;
-		head->name = $3;
-		while(head!=NULL){
-			if(search(head->name)==NULL){	//Does not exist in sym table
-				insert((varType)$1, head->name);
-				search(head->name)->term = (nonTerm*)head->term;
-			} else {
-				typeViolation();
-			}
-		}
-
-		if(search($3)==NULL){
-			insert((varType)$2, $3);
-		} 
+	 
 	}
 	;
 
@@ -508,12 +563,16 @@ FormalList:
 	| Type id COMMA FormalList
 
 Type:
-	PRIMETYPE BracketsList			{$$ = setType($1);}
+	PRIMETYPE BracketsList			{
+		$$ = malloc(sizeof(arrTypeY));
+		$$->type = setType($1);
+		$$->deg = $2;
+	}
 	| id BracketsList			{}
 
 BracketsList:
-	BracketsList BRACKETS
-	| /*empty*/ 
+	BracketsList BRACKETS			{$$++;} 
+	| /*empty*/ 				{$$ = 1;}
 	;
 
 StatementList: 
@@ -522,18 +581,25 @@ StatementList:
 	;
 
 Statement:
-	Type WORD VarDecl			{
+	Type WORD VarDecl {
 		symY* head = $3;
 		head->name = $2;
 		while(head!=NULL){
 			if(search(head->name)==NULL){	//Does not exist in sym table
 				if(head->term==NULL){	//Declared but not initialized
-					insert((varType)$1, head->name);
+					insert((varType)$1->type, head->name);
 				} else{
-					if(head->term->type!=$1){
-						typeViolation();		//Different types
+					if(head->term->type!=$1->type){		//Different type
+						if($1->deg>1){	//Is ARR, need to check type
+
+							//uhh let's skip the check for now
+
+						} else {
+							printf("Incompatible types\n");
+							typeViolation();		
+						} 
 					}
-					insert((varType)$1, head->name);
+					insert((varType)$1->type, head->name);
 					search(head->name)->term = (nonTerm*)head->term;
 				}
 			} else {
@@ -552,13 +618,12 @@ Statement:
 	}
 	| PRINT LPARENTH Exp RPARENTH SEMICOLON			{printExp((nonTerm*)&$3, 0);}
 	| LeftValue EQUAL Exp SEMICOLON		{
-		astY* x =$3;
-		char* y = $1;
-		search($1)->term = solveAst((ast*)$3);
-		//printall();
-		//memcpy((void*)search($1)->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));
+		//$1->term = (nonTermY*)solveAst((ast*)$3);
+		memcpy((void*)$1->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));	//lol
 	}
-	| LeftValue2 EQUAL Exp SEMICOLON
+	| LeftValue2 EQUAL Exp SEMICOLON {
+		$1->term = (nonTermY*)solveAst((ast*)$3);
+	}
 	| RETURN Exp SEMICOLON
 	| MethodCall SEMICOLON
 	;
@@ -572,27 +637,48 @@ MethodCall:
 LeftValue:
 	WORD				{
 		if(search($1)!=NULL)
-			$$ = $1;
+			$$ = (symY *)search($1);
 		else
 			typeViolation();
 	}
-	| LeftValue LBRACK Index	{}
+	| LeftValue LBRACK Index 	{
+		symY* symbol = malloc(sizeof(symY));
+		symbol->name = $1->name;
+		symbol->term = (nonTermY*)searchNonTermArr((nonTerm*)($1->term), $3);
+		$$ = symbol;	
+	}
 	| LeftValue DOT id		{}
 	| NewFunc DOT id		{}
 	| THIS DOT id			{}
 	;
 
 LeftValue2:	
-	| LeftValue2 LBRACK Index
+	LeftValue2 LBRACK Index
 	| LeftValue2 DOT id
 	| LPARENTH NewFunc RPARENTH DOT id
+	;
 
-IndexList:
-	IndexList LBRACK Index
-	| Index
+IndexList:				//returns list of ints to define array
+	Index LBRACK IndexList {
+		$$ = malloc(sizeof(numLinkListY));
+		$$->num = $1;
+		$$->next = $3;	
+	}
+	| Index {
+		$$ = malloc(sizeof(numLinkListY));
+		$$->num = $1;
+	}
 
 Index:
-	Exp RBRACK
+	Exp RBRACK {
+		nonTerm* index = solveAst((ast*)$1);
+		if(index->type!=INTY){
+			printf("invalid array exp\n");
+			typeViolation();
+		} else {
+			$$ = index->value.num;
+		}
+	}
 	;
 
 ExpList:
@@ -617,8 +703,13 @@ ExpOp:
 	}
 	| MethodCall			{}
 	| NewFunc			{}
-	| NEW Type LBRACK IndexList	{}
-	| LeftValue			{if(search($1)!=NULL){$$ = (astY*)mkLeaf((nonTerm*)search($1)->term);}}
+	| NEW Type LBRACK IndexList	{		//CREATE ENTIRE ARRAY USING LIST OF INT
+		$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	
+
+	}
+	| LeftValue			{
+		if($1!=NULL){$$ = (astY*)mkLeaf((nonTerm*)($1->term));}
+	}
 	| LeftValue DOT LENGTH		{}
 	
 	//| PLUS ExpOp			{$$.value.num = $2.value.num;}
