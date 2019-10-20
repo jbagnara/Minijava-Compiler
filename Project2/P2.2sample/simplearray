@@ -1,7 +1,8 @@
 class simplearray {
     public static void main(String [] args) {
         int i_size = 4, j_size=5;
-        int[][] Arr2D = new int[4][5];
+        int[][] Arr2D;
+	Arr2D = new int[4][5];
         int i=0, j=0;
         while (i < i_size) {
                 System.out.print("i equals ");

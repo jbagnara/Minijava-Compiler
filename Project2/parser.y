@@ -12,6 +12,7 @@ extern int yylex();
 struct nonTerm;
 struct ast;
 struct nonTerm* solveAst(struct ast*);
+struct numLinkList;
 
 
 void typeViolation(){
@@ -20,11 +21,12 @@ void typeViolation(){
 }
 
 typedef enum varType{
-	UNDEC	 = -1,
-	STRING	 = 0,
-	INT	 = 1,
-	BOOL	 = 2,
-	ARR	 = 3
+	UNDEC		= -1,
+	STRING		= 0,
+	INT		= 1,
+	BOOL		= 2,
+	ARR	 	= 3,
+	ARRUNDEC	= 4
 } varType;
 
 typedef struct arrType{
@@ -51,11 +53,13 @@ typedef enum opType{
 
 typedef struct nonTerm {
 	varType type;
+	arrType* arrType;
 	int deg;
 	union value{
 		char* str;
 		int num;
 		struct nonTerm** arr;	
+		struct numLinkList* numArr;
 	} value;
 } nonTerm;
 
@@ -85,6 +89,9 @@ nonTerm* mkNonTerm(int type, void* val){
 		case ARR:
 			term->value.arr = calloc(*(int*)val, sizeof(nonTerm));
 			term->deg = *(int*)val;
+			break;
+		case ARRUNDEC:
+			term->value.numArr = val;
 			break;
 		}
 	}
@@ -121,8 +128,9 @@ typedef struct strArr {
 nonTerm* searchNonTermArr(nonTerm* arr, numLinkList* num){
 	if(num==NULL)
 		return arr;
-	if(num->next==NULL)
+	if(num->next==NULL){
 		return arr->value.arr[solveAst(num->num)->value.num];
+	}
 	return searchNonTermArr(arr->value.arr[solveAst(num->num)->value.num], num->next);
 }
 
@@ -273,8 +281,9 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
 		if (tree->isVar){	//var
 			tree->node.leaf =  search(tree->str->str)->term;
-			if(tree->node.leaf->type==ARR)	//arr
+			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
+			}
 		}
 		return tree->node.leaf;
 	} else {
@@ -392,6 +401,9 @@ void execStatement(statement* statem){
 						} 
 					}
 					insert(thisType->type, head->name);
+					if(head->term->arrType!=NULL)	//solves for var indexes
+						head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
+					
 					search(head->name)->term = head->term;
 				}
 			} else {
@@ -408,8 +420,14 @@ void execStatement(statement* statem){
 	case PRINTN:
 		printExp(solveAst(statem->exp), 0);
 		break;		
-	case INIT:{
-		memcpy((void*)searchNonTermArr(search(statem->leftVal->str)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));
+	case INIT:{		
+		sym* head = search(statem->leftVal->str);
+		if(head->term->arrType!=NULL)				//solves for var indexes
+			head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
+					
+
+		memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));			//copies exp to the symbol table pointer
+
 		break;
 	}
 	case WHILEN:{
@@ -496,12 +514,16 @@ int main(int argc, char** argv){
 %token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER CLASS IF WHILE NOT TRUE FALSE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN LENGTH ELSE BRACKETS
 
 %code requires{
+
+	struct numLinkListY;
+
 	typedef enum varTypeY{
-		UNDECY 	= -1,
-		STRINGY = 0,
-		INTY 	= 1,
-		BOOLY	= 2,
-		ARRY	= 3
+		UNDECY 		= -1,
+		STRINGY 	= 0,
+		INTY 		= 1,
+		BOOLY		= 2,
+		ARRY		= 3,
+		ARRUNDECY	= 4
 	} varTypeY;
 
 	typedef struct arrTypeY{
@@ -528,11 +550,13 @@ int main(int argc, char** argv){
 	
 	typedef struct nonTermY {
 		varTypeY type;
+		arrTypeY* arrType;
 		int degY;
 		union valueY{
 			char* str;
 			int num;
 			struct nonTerm** arr;	
+			struct numLinkListY* numArr;
 		} value;
 	} nonTermY;
 
@@ -689,7 +713,7 @@ VarInitList:
 	;
 
 VarInit:
-	EQUAL ExpP			{
+	EQUAL Exp {
 		//$$ = *(nonTermY*)solveAst((ast*)$2);
 		symY* var = malloc(sizeof(symY));
 		var->term = (nonTermY*)solveAst((ast*)$2);
@@ -865,7 +889,9 @@ ExpOp:
 	| MethodCall			{}
 	| NewFunc			{}
 	| NEW Type LBRACK IndexList	{		//CREATE ENTIRE ARRAY USING LIST OF INT
-		$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	//***	
+		//$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	//***	
+		$$ = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (numLinkList*)$4));
+		$$->node.leaf->arrType = $2;
 
 	}
 	| LeftValue			{

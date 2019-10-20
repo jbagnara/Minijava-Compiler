@@ -44,14 +44,18 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 498 "parser.y"
+#line 516 "parser.y"
+
+
+	struct numLinkListY;
 
 	typedef enum varTypeY{
-		UNDECY 	= -1,
-		STRINGY = 0,
-		INTY 	= 1,
-		BOOLY	= 2,
-		ARRY	= 3
+		UNDECY 		= -1,
+		STRINGY 	= 0,
+		INTY 		= 1,
+		BOOLY		= 2,
+		ARRY		= 3,
+		ARRUNDECY	= 4
 	} varTypeY;
 
 	typedef struct arrTypeY{
@@ -78,11 +82,13 @@ extern int yydebug;
 	
 	typedef struct nonTermY {
 		varTypeY type;
+		arrTypeY* arrType;
 		int degY;
 		union valueY{
 			char* str;
 			int num;
 			struct nonTerm** arr;	
+			struct numLinkListY* numArr;
 		} value;
 	} nonTermY;
 
@@ -147,7 +153,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 151 "y.tab.h"
+#line 157 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -248,7 +254,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 601 "parser.y"
+#line 625 "parser.y"
 
 	int num;
 	numLinkListY* numList;
@@ -260,7 +266,7 @@ union YYSTYPE
 	statementY* statem;
 	strArrY* strarr;
 
-#line 264 "y.tab.h"
+#line 270 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
