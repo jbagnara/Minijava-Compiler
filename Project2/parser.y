@@ -9,6 +9,11 @@ extern int yyparse();
 extern int yylex();
 
 
+struct nonTerm;
+struct ast;
+struct nonTerm* solveAst(struct ast*);
+
+
 void typeViolation(){
 	printf("Type Violation in Line %d\n", yylineno);
 	exit(1);
@@ -60,11 +65,6 @@ typedef struct nonTermArr {
 	nonTerm** term;
 } nonTermArr;
 
-typedef struct numLinkList{
-	int num;
-	struct numLinkList* next;
-} numLinkList;
-
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
 	term->type = type;
@@ -91,25 +91,14 @@ nonTerm* mkNonTerm(int type, void* val){
 	return term;
 }
 
-nonTerm* mkNonTermArr(int type, numLinkList* list){	//builds array given dimensions
-	if(list == NULL){
-		return mkNonTerm(type, NULL);		//leaf
-	}
 
-	nonTerm* arr = mkNonTerm(ARR, &list->num);
-	for(int x=0; x<list->num; x++){
-		arr->value.arr[x] = mkNonTermArr(type, list->next);
-	}
-	return arr;
-}
 
-nonTerm* searchNonTermArr(nonTerm* arr, int num){
-	return arr->value.arr[num];
-}
-
+struct strArr;
 
 typedef struct ast {
 	int isLeaf;
+	int isVar;
+	struct strArr* str;
 	union node{
 		opType op;
 		nonTerm* leaf;
@@ -118,11 +107,52 @@ typedef struct ast {
 	struct ast* node2;
 } ast;
 
+
+typedef struct numLinkList{
+	ast* num;
+	struct numLinkList* next;
+} numLinkList;
+
+typedef struct strArr {
+	char* str;
+	numLinkList* num;
+} strArr;
+
+nonTerm* searchNonTermArr(nonTerm* arr, numLinkList* num){
+	if(num==NULL)
+		return arr;
+	if(num->next==NULL)
+		return arr->value.arr[solveAst(num->num)->value.num];
+	return searchNonTermArr(arr->value.arr[solveAst(num->num)->value.num], num->next);
+}
+
+nonTerm* mkNonTermArr(int type, numLinkList* list){	//builds array given dimensions
+	if(list == NULL){
+		return mkNonTerm(type, NULL);		//leaf
+	}
+
+	nonTerm* arr = mkNonTerm(ARR, list->num);
+	for(int x=0; x<solveAst(list->num)->value.num; x++){
+		arr->value.arr[x] = mkNonTermArr(type, list->next);
+	}
+	return arr;
+}
+
 ast* mkLeaf(nonTerm* leaf) {
 	ast* tree = malloc(sizeof(ast));
 	tree->isLeaf = 1;
+	tree->isVar = 0;
 	tree->node.leaf = leaf;
 	return tree;
+}
+
+
+ast* mkLeafStr(strArr* str){
+	ast* tree = malloc(sizeof(ast));
+	tree->isLeaf = 1;
+	tree->isVar = 1;
+	//tree->str = malloc(sizeof(strArr));
+	tree->str = str;
 }
 
 ast* mkNode(ast* node1, ast* node2, opType op){
@@ -144,9 +174,108 @@ void printAst(ast* tree){
 	}
 }
 
-nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 
+
+typedef struct symbol {
+	char* name;
+	nonTerm* term;
+	struct symbol* next;
+} sym;
+
+sym* head;
+sym* tail;
+
+void insert(varType type, char* name){
+	tail->next = malloc(sizeof(sym));
+	tail->next->term = malloc(sizeof(nonTerm));
+	tail = tail->next;
+	tail->name = strdup(name);
+	//strcpy(tail->name, name);
+	tail->term->type = type;
+	//tail->value = value;
+}
+
+sym* search(char* name){
+	sym* current = head->next;
+	while(current!=NULL){
+		if(!strcmp(name, current->name)){
+			return current;
+		}
+		current = current->next;	
+	}
+	return NULL;
+}
+
+typedef enum cmd {
+	DECL 		= 0,
+	IFELSE 		= 1,
+	PRINTNLINE	= 2,
+	PRINTN		= 3,
+	INIT 		= 4,
+	INIT2		= 5,
+	WHILEN		= 6
+} cmd;
+
+typedef struct statement {
+	cmd command;
+	char* word1;
+	ast* conditional;
+	struct statement* sub1;
+	struct statement* sub2;
+	//sym* leftVal;
+	strArr* leftVal;
+	ast* exp;
+	arrType* type;
+	sym* varDecl;
+	struct statement* next;
+} statement;
+
+
+statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftVal, ast* exp, arrType* type, sym* varDecl){
+	statement* exec = malloc(sizeof(statement));
+	exec->command = command;
+	exec->exp = conditional;
+	exec->word1 = word1;
+	exec->leftVal = leftVal;
+	exec->exp = exp;
+	exec->type = type;
+	exec->varDecl = varDecl;
+	exec->next = NULL;
+}
+
+void printExp(nonTerm* term, int nline){
+	switch(term->type){
+	case STRING:		//String
+		if(nline)
+			printf("%s\n", term->value.str);
+		else	
+			printf("%s", term->value.str);
+		break;
+	case INT:		//int
+		if(nline)
+			printf("%d\n", term->value.num);
+		else	
+			printf("%d", term->value.num);
+		break;
+	case BOOL:
+		if(nline)
+			printf("%d\n", term->value.num);
+		else	
+			printf("%d", term->value.num);
+		break;
+	case ARR:
+		printf("uhh\n");
+		typeViolation();	
+	}
+}
+
+nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
+		if (tree->isVar){	//var
+			tree->node.leaf =  search(tree->str->str)->term;
+			if(tree->node.leaf->type==ARR)	//arr
+				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
+		}
 		return tree->node.leaf;
 	} else {
 		nonTerm* term1 = solveAst(tree->node1);
@@ -241,35 +370,67 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		}
 	}
 }
+void execStatement(statement* statem){
+	switch(statem->command){
+	case DECL:{	
+		sym* head = statem->varDecl;
+		head->name = statem->word1;
+		arrType* thisType = statem->type;
+		while(head!=NULL){
+			if(search(head->name)==NULL){	//Does not exist in sym table
+				if(head->term==NULL){	//Declared but not initialized
+					insert(thisType->type, head->name);
+				} else{
+					if(head->term->type!=thisType->type){		//Different type
+						if(thisType->deg>1){	//Is ARR, need to check type
 
-typedef struct symbol {
-	char* name;
-	nonTerm* term;
-	struct symbol* next;
-} sym;
+							//uhh let's skip the check for now
 
-sym* head;
-sym* tail;
-
-void insert(varType type, char* name){
-	tail->next = malloc(sizeof(sym));
-	tail->next->term = malloc(sizeof(nonTerm));
-	tail = tail->next;
-	tail->name = strdup(name);
-	//strcpy(tail->name, name);
-	tail->term->type = type;
-	//tail->value = value;
-}
-
-sym* search(char* name){
-	sym* current = head->next;
-	while(current!=NULL){
-		if(!strcmp(name, current->name)){
-			return current;
+						} else {
+							printf("Incompatible types\n");
+							typeViolation();		
+						} 
+					}
+					insert(thisType->type, head->name);
+					search(head->name)->term = head->term;
+				}
+			} else {
+				typeViolation();		//Already declared
+			}
+			head = head->next;
 		}
-		current = current->next;	
+		break;
 	}
-	return NULL;
+	case PRINTNLINE:{
+		printExp(solveAst(statem->exp), 1);
+		break;		
+	}
+	case PRINTN:
+		printExp(solveAst(statem->exp), 0);
+		break;		
+	case INIT:{
+		memcpy((void*)searchNonTermArr(search(statem->leftVal->str)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));
+		break;
+	}
+	case WHILEN:{
+		while(solveAst(statem->conditional)->value.num)
+			execStatement(statem->sub1);
+		break;
+	}
+	case IFELSE:{
+		if(solveAst(statem->conditional)->value.num)
+			execStatement(statem->sub1);
+		else
+			execStatement(statem->sub2);
+		break;
+	}
+	default:
+		printf("something bad happened %d\n", statem->command);
+		typeViolation();
+	}
+	if(statem->next!=NULL)
+		execStatement(statem->next);
+
 }
 
 void printall(){
@@ -292,32 +453,6 @@ void yyerror(const char* str){
 
 int yywrap(){
 	return 1;
-}
-
-void printExp(nonTerm* term, int nline){
-	switch(term->type){
-	case STRING:		//String
-		if(nline)
-			printf("%s\n", term->value.str);
-		else	
-			printf("%s", term->value.str);
-		break;
-	case INT:		//int
-		if(nline)
-			printf("%d\n", term->value.num);
-		else	
-			printf("%d", term->value.num);
-		break;
-	case BOOL:
-		if(nline)
-			printf("%d\n", term->value.num);
-		else	
-			printf("%d", term->value.num);
-		break;
-	case ARR:
-		printf("uhh\n");
-		typeViolation();	
-	}
 }
 
 varType setType(char* type){
@@ -391,11 +526,6 @@ int main(int argc, char** argv){
 		SLASHY		= 13
 	} opTypeY;
 	
-	typedef struct numLinkListY{
-		int num;
-		struct numLinkListY* next;
-	} numLinkListY;
-
 	typedef struct nonTermY {
 		varTypeY type;
 		int degY;
@@ -412,8 +542,12 @@ int main(int argc, char** argv){
 		nonTermY** term;
 	} nonTermArrY;
 
+	struct strArrY;
+
 	typedef struct astY {
 		int isLeaf;
+		int isVar;
+		struct strArrY* str;
 		union nodeY{
 			opTypeY op;
 			nonTermY* leaf;
@@ -422,11 +556,46 @@ int main(int argc, char** argv){
 		struct astY* node2;
 	} astY;
 
+	typedef struct numLinkListY{
+		astY* num;
+		struct numLinkListY* next;
+	} numLinkListY;
+
+	typedef struct strArrY {
+		char* str;
+		numLinkListY* num;
+	} strArrY;
+
 	typedef struct symbolY {
 		char* name;
 		nonTermY* term;
 		struct symbolY* next;
 	} symY;
+
+	typedef enum cmdY {
+		DECLY 		= 0,
+		IFELSEY 	= 1,
+		PRINTNLINEY	= 2,
+		PRINTNY		= 3,
+		INITY 		= 4,
+		INIT2Y		= 5,
+		WHILENY		= 6,
+		LIST		= 7
+	} cmdY;
+
+	typedef struct statementY {
+		cmdY command;
+		astY* conditional;
+		struct statement* sub1; 
+		struct statement* sub2;
+		char* word1;
+		symY* leftVal;
+		astY* exp;
+		arrTypeY* type;
+		symY* varDecl;
+		struct statementY* next;
+	} statementY;
+
 }
 
 %union{
@@ -437,17 +606,20 @@ int main(int argc, char** argv){
 	arrTypeY* type;
 	astY* tree;
 	symY* termList;
+	statementY* statem;
+	strArrY* strarr;
 }
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
-
-%type<num> BracketsList Index
+%type<strarr> LeftValue LeftValue2
+%type<num> BracketsList 
 %type<numList> IndexList
 %type<term> NewFunc MethodCall id VarOrMethod
-%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit LeftValue LeftValue2
-%type<tree> Exp ExpP ExpP2 ExpOp 
+%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit //LeftValue LeftValue2
+%type<tree> Exp ExpP ExpP2 ExpOp Index
 %type<type> Type
+%type<statem> Statement StatementList
 
 
 %%
@@ -457,7 +629,9 @@ Program:
 	;
 
 MainClass:
-	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE {
+		execStatement((statement*)$11);
+	}
 	;
 
 ClassDeclList:
@@ -485,29 +659,7 @@ VarMethodDeclList:
 
 VarOrMethod:
 	Type WORD VarMethodDecl		{			//DO INSERTIONS HERE***
-		symY* head = $3;
-		head->name = $2;
-		while(head!=NULL){
-			if(search(head->name)==NULL){	//Does not exist in sym table
-				if(head->term==NULL){	//Declared but not initialized
-					insert($1->type, head->name);
-				} else{
-					if(head->term->type!=$1->type){
-						printf("Incompatible types\n");
-						typeViolation();		//Different types
-					}
-					insert((varType)$1->type, head->name);
-					search(head->name)->term = (nonTerm*)head->term;
-				}
-			} else {
-				printf("Var already declared\n");
-				typeViolation();		//Already declared
-			}
-			head = (symY*)head->next;
-		}
-
-		//search($2)->term->value.num=$3.value.num;
-	}	//adds first var to table
+	}
 	| PUBLIC Type WORD MethodDecl	{
 	 
 	}
@@ -576,56 +728,58 @@ BracketsList:
 	;
 
 StatementList: 
-	Statement StatementList
-	| /*empty*/
+	Statement StatementList  {
+		//execStatement((statement*)$2);
+		$1->next = $2;
+		$$ = $1;	
+	}
+	| /*empty*/ {
+		$$ = NULL;	//this needs to be here
+	}
 	;
 
 Statement:
 	Type WORD VarDecl {
-		symY* head = $3;
-		head->name = $2;
-		while(head!=NULL){
-			if(search(head->name)==NULL){	//Does not exist in sym table
-				if(head->term==NULL){	//Declared but not initialized
-					insert((varType)$1->type, head->name);
-				} else{
-					if(head->term->type!=$1->type){		//Different type
-						if($1->deg>1){	//Is ARR, need to check type
-
-							//uhh let's skip the check for now
-
-						} else {
-							printf("Incompatible types\n");
-							typeViolation();		
-						} 
-					}
-					insert((varType)$1->type, head->name);
-					search(head->name)->term = (nonTerm*)head->term;
-				}
-			} else {
-				typeViolation();		//Already declared
-			}
-			head = (symY*)head->next;
-		}
-
-		//search($2)->term->value.num=$3.value.num;
+		statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
+		$$ = (statementY*)statem;
 	}	//adds first var to table
-	| LBRACE StatementList RBRACE		
-	| IF LPARENTH Exp RPARENTH Statement ELSE Statement
-	| WHILE LPARENTH Exp RPARENTH Statement
-	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON		{
-		printExp(solveAst((ast*)$3), 1);
+	| LBRACE StatementList RBRACE {
+		$$ = $2;
+	}	
+	| IF LPARENTH Exp RPARENTH Statement ELSE Statement {
+		statement* statem = mkStatement(IFELSEY, NULL, NULL, NULL, NULL, NULL, NULL);
+		statem->conditional = (ast*)$3;
+		statem->sub1 = (statement*)$5;
+		statem->sub2 = (statement*)$7;
+		$$ = (statementY*)statem;		
 	}
-	| PRINT LPARENTH Exp RPARENTH SEMICOLON			{printExp((nonTerm*)&$3, 0);}
+	| WHILE LPARENTH Exp RPARENTH Statement {	//This guy adds an extra null statement that gets checked
+		statement* statem = mkStatement(WHILENY, NULL, NULL, NULL, NULL, NULL, NULL);		
+		statem->conditional = (ast*)$3;
+		statem->sub1 = (statement*)$5;
+		$$ = (statementY*)statem;
+		
+	}
+	| PRINTLN LPARENTH Exp RPARENTH SEMICOLON {
+		statement* statem = mkStatement(PRINTNLINE, NULL, NULL, NULL, (ast*)$3, NULL, NULL);
+		$$ = (statementY*)statem;
+	}
+	| PRINT LPARENTH Exp RPARENTH SEMICOLON {
+		statement* statem = mkStatement(PRINTN, NULL, NULL, NULL, (ast*)$3, NULL, NULL);
+		$$ = (statementY*)statem;
+	}
 	| LeftValue EQUAL Exp SEMICOLON		{
 		//$1->term = (nonTermY*)solveAst((ast*)$3);
-		memcpy((void*)$1->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));	//lol
+		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
+		$$ = (statementY*)statem;
+		//memcpy((void*)$1->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));	//lol
 	}
 	| LeftValue2 EQUAL Exp SEMICOLON {
-		$1->term = (nonTermY*)solveAst((ast*)$3);
+		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
+		$$ = (statementY*)statem;
 	}
-	| RETURN Exp SEMICOLON
-	| MethodCall SEMICOLON
+	| RETURN Exp SEMICOLON {}
+	| MethodCall SEMICOLON {}
 	;
 
 
@@ -636,16 +790,29 @@ MethodCall:
 
 LeftValue:
 	WORD				{
-		if(search($1)!=NULL)
-			$$ = (symY *)search($1);
-		else
-			typeViolation();
+		//if(search($1)!=NULL)
+			strArrY* this = malloc(sizeof(strArrY));
+			this->str = $1;
+			$$ = this;
+			//$$ = (symY *)search($1);
+		//else
+		//	typeViolation();
 	}
 	| LeftValue LBRACK Index 	{
-		symY* symbol = malloc(sizeof(symY));
-		symbol->name = $1->name;
-		symbol->term = (nonTermY*)searchNonTermArr((nonTerm*)($1->term), $3);
-		$$ = symbol;	
+		if($1->num == NULL){		//first deg of array
+			$1->num = malloc(sizeof(numLinkListY));
+			$1->num->num = $3;
+		} else {
+
+		numLinkListY* current = $1->num;
+		while(current->next!=NULL)
+			current = current->next;	//points to tail
+
+		current->next = malloc(sizeof(numLinkListY));
+		current->next->num = $3;
+	
+		}
+		$$ = $1;
 	}
 	| LeftValue DOT id		{}
 	| NewFunc DOT id		{}
@@ -671,13 +838,7 @@ IndexList:				//returns list of ints to define array
 
 Index:
 	Exp RBRACK {
-		nonTerm* index = solveAst((ast*)$1);
-		if(index->type!=INTY){
-			printf("invalid array exp\n");
-			typeViolation();
-		} else {
-			$$ = index->value.num;
-		}
+		$$ = $1;
 	}
 	;
 
@@ -704,11 +865,11 @@ ExpOp:
 	| MethodCall			{}
 	| NewFunc			{}
 	| NEW Type LBRACK IndexList	{		//CREATE ENTIRE ARRAY USING LIST OF INT
-		$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	
+		$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	//***	
 
 	}
 	| LeftValue			{
-		if($1!=NULL){$$ = (astY*)mkLeaf((nonTerm*)($1->term));}
+		if($1!=NULL){$$ = (astY*)mkLeafStr((strArr*)$1);}
 	}
 	| LeftValue DOT LENGTH		{}
 	

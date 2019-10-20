@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 363 "parser.y"
+#line 498 "parser.y"
 
 	typedef enum varTypeY{
 		UNDECY 	= -1,
@@ -76,11 +76,6 @@ extern int yydebug;
 		SLASHY		= 13
 	} opTypeY;
 	
-	typedef struct numLinkListY{
-		int num;
-		struct numLinkListY* next;
-	} numLinkListY;
-
 	typedef struct nonTermY {
 		varTypeY type;
 		int degY;
@@ -97,8 +92,12 @@ extern int yydebug;
 		nonTermY** term;
 	} nonTermArrY;
 
+	struct strArrY;
+
 	typedef struct astY {
 		int isLeaf;
+		int isVar;
+		struct strArrY* str;
 		union nodeY{
 			opTypeY op;
 			nonTermY* leaf;
@@ -107,13 +106,48 @@ extern int yydebug;
 		struct astY* node2;
 	} astY;
 
+	typedef struct numLinkListY{
+		astY* num;
+		struct numLinkListY* next;
+	} numLinkListY;
+
+	typedef struct strArrY {
+		char* str;
+		numLinkListY* num;
+	} strArrY;
+
 	typedef struct symbolY {
 		char* name;
 		nonTermY* term;
 		struct symbolY* next;
 	} symY;
 
-#line 117 "y.tab.h"
+	typedef enum cmdY {
+		DECLY 		= 0,
+		IFELSEY 	= 1,
+		PRINTNLINEY	= 2,
+		PRINTNY		= 3,
+		INITY 		= 4,
+		INIT2Y		= 5,
+		WHILENY		= 6,
+		LIST		= 7
+	} cmdY;
+
+	typedef struct statementY {
+		cmdY command;
+		astY* conditional;
+		struct statement* sub1; 
+		struct statement* sub2;
+		char* word1;
+		symY* leftVal;
+		astY* exp;
+		arrTypeY* type;
+		symY* varDecl;
+		struct statementY* next;
+	} statementY;
+
+
+#line 151 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -214,7 +248,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 432 "parser.y"
+#line 601 "parser.y"
 
 	int num;
 	numLinkListY* numList;
@@ -223,8 +257,10 @@ union YYSTYPE
 	arrTypeY* type;
 	astY* tree;
 	symY* termList;
+	statementY* statem;
+	strArrY* strarr;
 
-#line 228 "y.tab.h"
+#line 264 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

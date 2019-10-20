@@ -221,25 +221,25 @@ Nonterminals, with rules where they appear
     BracketsList <num> (63)
         on left: 27 28
         on right: 25 26 27
-    StatementList (64)
+    StatementList <statem> (64)
         on left: 29 30
         on right: 2 20 29 32
-    Statement (65)
+    Statement <statem> (65)
         on left: 31 32 33 34 35 36 37 38 39 40
         on right: 29 33 34
     MethodCall <term> (66)
         on left: 41 42
         on right: 40 62
-    LeftValue <termList> (67)
+    LeftValue <strarr> (67)
         on left: 43 44 45 46 47
         on right: 37 41 42 44 45 65 66
-    LeftValue2 <termList> (68)
+    LeftValue2 <strarr> (68)
         on left: 48 49 50
         on right: 38 48 49
     IndexList <numList> (69)
         on left: 51 52
         on right: 51 64
-    Index <num> (70)
+    Index <tree> (70)
         on left: 53
         on right: 44 48 51 52
     ExpList (71)
