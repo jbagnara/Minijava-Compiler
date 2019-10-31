@@ -193,6 +193,34 @@ typedef struct symbol {
 sym* head;
 sym* tail;
 
+typedef struct symStack {
+	sym* table;
+	sym* tableTail;
+	struct symStack* next;
+	struct symStack* prev;
+} symStack;
+
+symStack* table;
+
+symStack* pushTable(){				//pushes new symbol table
+	symStack* thisTable = malloc(sizeof(symStack));
+
+	thisTable->table = malloc(sizeof(sym));	//init sym linkedlist
+	thisTable->table->term = malloc(sizeof(nonTerm));
+	thisTable->tableTail = thisTable->table;
+
+	head = thisTable->table;
+	tail = thisTable->tableTail;
+}
+
+void popTable(){
+	table = table->prev;			//there should always be parent table
+	head = table->table;
+	tail = table->tableTail;
+	
+	//need to free
+}
+
 void insert(varType type, char* name){
 	tail->next = malloc(sizeof(sym));
 	tail->next->term = malloc(sizeof(nonTerm));
@@ -489,9 +517,7 @@ varType setType(char* type){
 
 
 int main(int argc, char** argv){
-	head = malloc(sizeof(sym));	//init sym linkedlist
-	head->term = malloc(sizeof(nonTerm));
-	tail = head;
+	table = pushTable();	//pushes main class symbol table to stack
 	#ifdef YYDEBUG
 	yydebug = 1;
 	#endif
@@ -726,7 +752,8 @@ VarInit:
 	;
 
 MethodDecl:
-	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE	{}
+	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE	{
+	}
 	;
 
 FormalListMaybe:
