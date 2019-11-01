@@ -13,8 +13,6 @@ struct nonTerm;
 struct ast;
 struct nonTerm* solveAst(struct ast*);
 struct numLinkList;
-struct strArr;
-struct statement;
 
 
 void typeViolation(){
@@ -22,17 +20,16 @@ void typeViolation(){
 	exit(1);
 }
 
-typedef enum varType{			//variable types
+typedef enum varType{
 	UNDEC		= -1,
 	STRING		= 0,
 	INT		= 1,
 	BOOL		= 2,
 	ARR	 	= 3,
-	ARRUNDEC	= 4,
-	CLASSy		= 5
+	ARRUNDEC	= 4
 } varType;
 
-typedef struct arrType{			//extension of varType for arrays
+typedef struct arrType{
 	varType type;
 	int deg;
 } arrType;
@@ -54,7 +51,7 @@ typedef enum opType{
 	SLASHy		= 13
 } opType;
 
-typedef struct nonTerm {		//nonterminals, stores unformated symbol table entry
+typedef struct nonTerm {
 	varType type;
 	arrType* arrType;
 	int deg;
@@ -63,103 +60,14 @@ typedef struct nonTerm {		//nonterminals, stores unformated symbol table entry
 		int num;
 		struct nonTerm** arr;	
 		struct numLinkList* numArr;
-		struct classRef* class;
 	} value;
 } nonTerm;
 
-typedef struct nonTermArr {		//extension of nonTerm for arrays
+typedef struct nonTermArr {
 	int length;
 	varType type;
 	nonTerm** term;
 } nonTermArr;
-
-typedef struct ast {			//stores a subtree to be solved at execution
-	int isLeaf;
-	int isVar;
-	struct strArr* str;
-	union node{
-		opType op;
-		nonTerm* leaf;
-	} node;
-	struct ast* node1;
-	struct ast* node2;
-} ast;
-
-typedef struct numLinkList{		//linked list of array size information
-	ast* num;
-	struct numLinkList* next;
-} numLinkList;
-
-typedef struct classLinkList{
-	char* name;
-	struct classLinkList* next;
-} classLinkList;
-
-typedef struct classRef {
-	char* name;
-	union sub{
-		struct statement* list;	//method of class
-		nonTerm* var;		//variable or subclass of class
-	} sub;
-} classRef;
-
-typedef struct strArr {			//stores array variable
-	char* str;
-	numLinkList* num;
-	classLinkList* class;
-} strArr;
-
-typedef struct symbol {			//entry to symbol table
-	char* name;
-	nonTerm* term;
-	struct symbol* next;
-} sym;
-
-typedef struct symStack {		//symbol table stack for accessing classes
-	sym* table;
-	sym* tableTail;
-	struct symStack* next;
-	struct symStack* prev;
-} symStack;
-
-typedef struct classList {
-	
-} classList;
-
-typedef enum cmd {
-	DECL 		= 0,
-	IFELSE 		= 1,
-	PRINTNLINE	= 2,
-	PRINTN		= 3,
-	INIT 		= 4,
-	INIT2		= 5,
-	WHILEN		= 6,
-	RET		= 7
-} cmd;
-
-typedef struct statement {		//Executable command list
-	cmd command;
-	char* word1;
-	ast* conditional;
-	struct statement* sub1;
-	struct statement* sub2;
-	//sym* leftVal;
-	strArr* leftVal;
-	ast* exp;
-	arrType* type;
-	sym* varDecl;
-	struct statement* next;
-} statement;
-
-
-
-sym* head;		//head of current symbol table
-sym* tail;
-symStack* table;	//symbol table stack
-statement* temp;
-
-
-nonTerm* execStatement(statement*);
 
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
@@ -185,13 +93,37 @@ nonTerm* mkNonTerm(int type, void* val){
 		case ARRUNDEC:
 			term->value.numArr = val;
 			break;
-		case CLASSy:
-			term->value.class = malloc(sizeof(classRef));
-			term->value.class->name = (char*)val;
 		}
 	}
 	return term;
 }
+
+
+
+struct strArr;
+
+typedef struct ast {
+	int isLeaf;
+	int isVar;
+	struct strArr* str;
+	union node{
+		opType op;
+		nonTerm* leaf;
+	} node;
+	struct ast* node1;
+	struct ast* node2;
+} ast;
+
+
+typedef struct numLinkList{
+	ast* num;
+	struct numLinkList* next;
+} numLinkList;
+
+typedef struct strArr {
+	char* str;
+	numLinkList* num;
+} strArr;
 
 nonTerm* searchNonTermArr(nonTerm* arr, numLinkList* num){
 	if(num==NULL)
@@ -250,9 +182,30 @@ void printAst(ast* tree){
 	}
 }
 
+
+
+typedef struct symbol {
+	char* name;
+	nonTerm* term;
+	struct symbol* next;
+} sym;
+
+sym* head;
+sym* tail;
+
+typedef struct symStack {
+	sym* table;
+	sym* tableTail;
+	struct symStack* next;
+	struct symStack* prev;
+} symStack;
+
+symStack* table;
+
 void pushTable(){				//pushes new symbol table
 	symStack* thisTable = malloc(sizeof(symStack));
 
+	memcpy(thisTable, table, sizeof(symStack));
 
 	thisTable->table = malloc(sizeof(sym));	//init sym linkedlist
 	thisTable->table->term = malloc(sizeof(nonTerm));
@@ -298,6 +251,31 @@ sym* search(char* name){
 	return NULL;
 }
 
+typedef enum cmd {
+	DECL 		= 0,
+	IFELSE 		= 1,
+	PRINTNLINE	= 2,
+	PRINTN		= 3,
+	INIT 		= 4,
+	INIT2		= 5,
+	WHILEN		= 6
+} cmd;
+
+typedef struct statement {
+	cmd command;
+	char* word1;
+	ast* conditional;
+	struct statement* sub1;
+	struct statement* sub2;
+	//sym* leftVal;
+	strArr* leftVal;
+	ast* exp;
+	arrType* type;
+	sym* varDecl;
+	struct statement* next;
+} statement;
+
+
 statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftVal, ast* exp, arrType* type, sym* varDecl){
 	statement* exec = malloc(sizeof(statement));
 	exec->command = command;
@@ -339,18 +317,10 @@ void printExp(nonTerm* term, int nline){
 nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
 		if (tree->isVar){	//var
-
-			if(tree->str->class!=NULL){		//class shenanigans
-				pushTable();
-				nonTerm* ret = execStatement((statement*)temp);
-				popTable();
-				return ret;
-			}
-
 			tree->node.leaf =  search(tree->str->str)->term;
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
-			} 
+			}
 		}
 		return tree->node.leaf;
 	} else {
@@ -446,7 +416,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		}
 	}
 }
-nonTerm* execStatement(statement* statem){
+void execStatement(statement* statem){
 	switch(statem->command){
 	case DECL:{	
 		sym* head = statem->varDecl;
@@ -509,18 +479,13 @@ nonTerm* execStatement(statement* statem){
 			execStatement(statem->sub2);
 		break;
 	}
-	case RET:{
-		return solveAst(statem->exp);
-		break;
-	}
 	default:
 		printf("something bad happened %d\n", statem->command);
 		typeViolation();
 	}
 	if(statem->next!=NULL)
-		return execStatement(statem->next);
+		execStatement(statem->next);
 
-	return NULL;
 }
 
 void printall(){
@@ -593,8 +558,7 @@ int main(int argc, char** argv){
 		INTY 		= 1,
 		BOOLY		= 2,
 		ARRY		= 3,
-		ARRUNDECY	= 4,
-		CLASSY		= 5
+		ARRUNDECY	= 4
 	} varTypeY;
 
 	typedef struct arrTypeY{
@@ -628,7 +592,6 @@ int main(int argc, char** argv){
 			int num;
 			struct nonTerm** arr;	
 			struct numLinkListY* numArr;
-			struct classRefY* class;
 		} value;
 	} nonTermY;
 
@@ -637,14 +600,6 @@ int main(int argc, char** argv){
 		varTypeY type;
 		nonTermY** term;
 	} nonTermArrY;
-
-	typedef struct classRefY {
-		char* name;
-		union subY{
-			struct statementY* list;
-			nonTermY* var;
-		} sub;
-	} classRefY;
 
 	struct strArrY;
 
@@ -665,15 +620,9 @@ int main(int argc, char** argv){
 		struct numLinkListY* next;
 	} numLinkListY;
 
-	typedef struct classLinkListY{
-		char* name;
-		struct classLinkListY* next;
-	} classLinkListY;
-
 	typedef struct strArrY {
 		char* str;
 		numLinkListY* num;
-		classLinkListY* class;
 	} strArrY;
 
 	typedef struct symbolY {
@@ -722,27 +671,25 @@ int main(int argc, char** argv){
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
-%type<strarr> LeftValue LeftValue2 NewFunc MethodCall
+%type<strarr> LeftValue LeftValue2
 %type<num> BracketsList 
 %type<numList> IndexList
-%type<term> id VarOrMethod
+%type<term> NewFunc MethodCall id VarOrMethod
 %type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit //LeftValue LeftValue2
 %type<tree> Exp ExpP ExpP2 ExpOp Index
 %type<type> Type
-%type<statem> Statement StatementList MainClass Program
+%type<statem> Statement StatementList
 
 
 %%
 
 Program:	
-	MainClass ClassDeclList {
-		execStatement((statement*)$1);
-	}
+	MainClass ClassDeclList
 	;
 
 MainClass:
 	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE {
-		$$ = $11;
+		execStatement((statement*)$11);
 	}
 	;
 
@@ -772,7 +719,9 @@ VarMethodDeclList:
 VarOrMethod:
 	Type WORD VarMethodDecl		{			//DO INSERTIONS HERE***
 	}
-	| PUBLIC Type WORD MethodDecl	{ 
+	| PUBLIC Type WORD MethodDecl	{
+		pushTable();
+	 
 	}
 	;
 
@@ -814,8 +763,9 @@ VarInit:
 	;
 
 MethodDecl:
-	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE	{		//FIX
-		temp = $5;
+	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE	{
+		execStatement((statement*)$5);	
+		popTable();
 	}
 	;
 
@@ -892,10 +842,7 @@ Statement:
 		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
 		$$ = (statementY*)statem;
 	}
-	| RETURN Exp SEMICOLON {
-		statement* statem = mkStatement(RET, NULL, NULL, NULL, (ast*)$2, NULL, NULL);
-		$$ = (statementY*)statem;
-	}
+	| RETURN Exp SEMICOLON {}
 	| MethodCall SEMICOLON {}
 	;
 
@@ -931,38 +878,9 @@ LeftValue:
 		}
 		$$ = $1;
 	}
-	| LeftValue DOT WORD		{
-		if($1->class == NULL){		//first deg of array
-			$1->class = malloc(sizeof(classLinkListY));
-			$1->class->name = $3;
-		} else {
-
-		classLinkListY* current = $1->class;
-		while(current->next!=NULL)
-			current = current->next;	//points to tail
-
-		current->next = malloc(sizeof(classLinkListY));
-		current->next->name = $3;
-	
-		}
-		$$ = $1;
-		printf("zobbles!\n");
-	}
-	| NewFunc DOT WORD		{
-		$1->class = malloc(sizeof(classLinkListY));
-		$1->class->name = $3;
-		$$ = $1;
-	}
-	| THIS DOT WORD			{
-	}
-	;
-
-NewFunc:
-	NEW WORD LPARENTH RPARENTH	{
-		strArrY* this = malloc(sizeof(strArrY));
-		this->str = $2;
-		$$ = this;
-	}
+	| LeftValue DOT id		{}
+	| NewFunc DOT id		{}
+	| THIS DOT id			{}
 	;
 
 LeftValue2:	
@@ -1008,24 +926,25 @@ ExpOp:
 	| INTEGER_LITERAL {
 		$$ = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&$1));
 	}
-	| MethodCall			{
-		if($1!=NULL){
-			$$ = (astY*)mkLeafStr((strArr*)$1);
-		}	
-	}
-	| NewFunc			{
-	}
+	| MethodCall			{}
+	| NewFunc			{}
 	| NEW Type LBRACK IndexList	{		//CREATE ENTIRE ARRAY USING LIST OF INT
+		//$$ = (astY*)mkLeaf((nonTerm*) mkNonTermArr((varType)$2->type, (numLinkList*)$4));	//***	
 		$$ = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (numLinkList*)$4));
 		$$->node.leaf->arrType = $2;
 
 	}
 	| LeftValue			{
-		if($1!=NULL){
-			$$ = (astY*)mkLeafStr((strArr*)$1);
-		}
+		if($1!=NULL){$$ = (astY*)mkLeafStr((strArr*)$1);}
 	}
-	| LeftValue DOT LENGTH		{}	
+	| LeftValue DOT LENGTH		{}
+	
+	//| PLUS ExpOp			{$$.value.num = $2.value.num;}
+	//| MINUS ExpOp			{$$.value.num = $2.value.num * (-1);}
+	;
+
+NewFunc:
+	NEW id LPARENTH RPARENTH	{}
 	;
 
 ExpP2: 
@@ -1047,8 +966,12 @@ ExpP:
 	;
 
 Exp:
+	//| Exp SLASH ExpOp		{$$.value.num = $1.value.num / $3.value.num;}
+//{$$ = $1 / $3;}
 	Exp PLUS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, PLUSY);}
+//{$$ = $1 + $3;}
 	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, MINUSY);}
+//{$$ = $1 - $3;}
 	| ExpP				{$$ = $1;}
 	;
 

@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 516 "parser.y"
+#line 586 "parser.y"
 
 
 	struct numLinkListY;
@@ -55,7 +55,8 @@ extern int yydebug;
 		INTY 		= 1,
 		BOOLY		= 2,
 		ARRY		= 3,
-		ARRUNDECY	= 4
+		ARRUNDECY	= 4,
+		CLASSY		= 5
 	} varTypeY;
 
 	typedef struct arrTypeY{
@@ -89,6 +90,7 @@ extern int yydebug;
 			int num;
 			struct nonTerm** arr;	
 			struct numLinkListY* numArr;
+			struct classRefY* class;
 		} value;
 	} nonTermY;
 
@@ -97,6 +99,14 @@ extern int yydebug;
 		varTypeY type;
 		nonTermY** term;
 	} nonTermArrY;
+
+	typedef struct classRefY {
+		char* name;
+		union subY{
+			struct statementY* list;
+			nonTermY* var;
+		} sub;
+	} classRefY;
 
 	struct strArrY;
 
@@ -117,9 +127,15 @@ extern int yydebug;
 		struct numLinkListY* next;
 	} numLinkListY;
 
+	typedef struct classLinkListY{
+		char* name;
+		struct classLinkListY* next;
+	} classLinkListY;
+
 	typedef struct strArrY {
 		char* str;
 		numLinkListY* num;
+		classLinkListY* class;
 	} strArrY;
 
 	typedef struct symbolY {
@@ -153,7 +169,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 157 "y.tab.h"
+#line 173 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -254,7 +270,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 625 "parser.y"
+#line 711 "parser.y"
 
 	int num;
 	numLinkListY* numList;
@@ -266,7 +282,7 @@ union YYSTYPE
 	statementY* statem;
 	strArrY* strarr;
 
-#line 270 "y.tab.h"
+#line 286 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

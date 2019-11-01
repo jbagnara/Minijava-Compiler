@@ -66,35 +66,35 @@ Grammar
 
    43 LeftValue: WORD
    44          | LeftValue LBRACK Index
-   45          | LeftValue DOT id
-   46          | NewFunc DOT id
-   47          | THIS DOT id
+   45          | LeftValue DOT WORD
+   46          | NewFunc DOT WORD
+   47          | THIS DOT WORD
 
-   48 LeftValue2: LeftValue2 LBRACK Index
-   49           | LeftValue2 DOT id
-   50           | LPARENTH NewFunc RPARENTH DOT id
+   48 NewFunc: NEW WORD LPARENTH RPARENTH
 
-   51 IndexList: Index LBRACK IndexList
-   52          | Index
+   49 LeftValue2: LeftValue2 LBRACK Index
+   50           | LeftValue2 DOT id
+   51           | LPARENTH NewFunc RPARENTH DOT id
 
-   53 Index: Exp RBRACK
+   52 IndexList: Index LBRACK IndexList
+   53          | Index
 
-   54 ExpList: Exp
-   55        | ExpList COMMA Exp
+   54 Index: Exp RBRACK
 
-   56 ExpOp: NOT ExpOp
-   57      | LPARENTH Exp RPARENTH
-   58      | STRING_LITERAL
-   59      | TRUE
-   60      | FALSE
-   61      | INTEGER_LITERAL
-   62      | MethodCall
-   63      | NewFunc
-   64      | NEW Type LBRACK IndexList
-   65      | LeftValue
-   66      | LeftValue DOT LENGTH
+   55 ExpList: Exp
+   56        | ExpList COMMA Exp
 
-   67 NewFunc: NEW id LPARENTH RPARENTH
+   57 ExpOp: NOT ExpOp
+   58      | LPARENTH Exp RPARENTH
+   59      | STRING_LITERAL
+   60      | TRUE
+   61      | FALSE
+   62      | INTEGER_LITERAL
+   63      | MethodCall
+   64      | NewFunc
+   65      | NEW Type LBRACK IndexList
+   66      | LeftValue
+   67      | LeftValue DOT LENGTH
 
    68 ExpP2: ExpP2 AND ExpOp
    69      | ExpP2 OR ExpOp
@@ -133,47 +133,47 @@ Terminals, with rules where they appear
     MINUS <num> (267) 81
     STAR <num> (268) 77
     SLASH <num> (269) 78
-    LBRACK <num> (270) 44 48 51 64
-    RBRACK <num> (271) 53
+    LBRACK <num> (270) 44 49 52 65
+    RBRACK <num> (271) 54
     LBRACE <num> (272) 2 5 20 32
     RBRACE <num> (273) 2 5 20 32
-    LPARENTH <num> (274) 2 20 33 34 35 36 41 42 50 57 67
-    RPARENTH <num> (275) 2 20 33 34 35 36 41 42 50 57 67
+    LPARENTH <num> (274) 2 20 33 34 35 36 41 42 48 51 58
+    RPARENTH <num> (275) 2 20 33 34 35 36 41 42 48 51 58
     EXTENDS <num> (276) 8
     HEADER <num> (277) 2
     CLASS <num> (278) 2 5
     IF <num> (279) 33
     WHILE <num> (280) 34
-    NOT <num> (281) 56
-    TRUE <num> (282) 59
-    FALSE <num> (283) 60
+    NOT <num> (281) 57
+    TRUE <num> (282) 60
+    FALSE <num> (283) 61
     PUBLIC <num> (284) 12
-    COMMA <num> (285) 17 24 55
+    COMMA <num> (285) 17 24 56
     EQUIVALENT <num> (286) 74
     SEMICOLON <num> (287) 15 35 36 37 38 39 40
     PRINT <num> (288) 36
     PRINTLN <num> (289) 35
-    DOT <num> (290) 45 46 47 49 50 66
-    NEW <num> (291) 64 67
+    DOT <num> (290) 45 46 47 50 51 67
+    NEW <num> (291) 48 65
     THIS <num> (292) 47
     RETURN <num> (293) 39
-    LENGTH <num> (294) 66
+    LENGTH <num> (294) 67
     ELSE <num> (295) 33
     BRACKETS <num> (296) 2 27
-    WORD <str> (297) 11 12 17 31 43 83
-    STRING_LITERAL <str> (298) 58
+    WORD <str> (297) 11 12 17 31 43 45 46 47 48 83
+    STRING_LITERAL <str> (298) 59
     PRIMETYPE <str> (299) 2 25
-    INTEGER_LITERAL <num> (300) 61
+    INTEGER_LITERAL <num> (300) 62
 
 
 Nonterminals, with rules where they appear
 
     $accept (46)
         on left: 0
-    Program (47)
+    Program <statem> (47)
         on left: 1
         on right: 0
-    MainClass (48)
+    MainClass <statem> (48)
         on left: 2
         on right: 1
     ClassDeclList (49)
@@ -217,7 +217,7 @@ Nonterminals, with rules where they appear
         on right: 21 24
     Type <type> (62)
         on left: 25 26
-        on right: 11 12 23 24 31 64
+        on right: 11 12 23 24 31 65
     BracketsList <num> (63)
         on left: 27 28
         on right: 25 26 27
@@ -227,30 +227,30 @@ Nonterminals, with rules where they appear
     Statement <statem> (65)
         on left: 31 32 33 34 35 36 37 38 39 40
         on right: 29 33 34
-    MethodCall <term> (66)
+    MethodCall <strarr> (66)
         on left: 41 42
-        on right: 40 62
+        on right: 40 63
     LeftValue <strarr> (67)
         on left: 43 44 45 46 47
-        on right: 37 41 42 44 45 65 66
-    LeftValue2 <strarr> (68)
-        on left: 48 49 50
-        on right: 38 48 49
-    IndexList <numList> (69)
-        on left: 51 52
-        on right: 51 64
-    Index <tree> (70)
-        on left: 53
-        on right: 44 48 51 52
-    ExpList (71)
-        on left: 54 55
-        on right: 41 55
-    ExpOp <tree> (72)
-        on left: 56 57 58 59 60 61 62 63 64 65 66
-        on right: 56 68 69 70 71 72 73 74 75 76
-    NewFunc <term> (73)
-        on left: 67
-        on right: 46 50 63
+        on right: 37 41 42 44 45 66 67
+    NewFunc <strarr> (68)
+        on left: 48
+        on right: 46 51 64
+    LeftValue2 <strarr> (69)
+        on left: 49 50 51
+        on right: 38 49 50
+    IndexList <numList> (70)
+        on left: 52 53
+        on right: 52 65
+    Index <tree> (71)
+        on left: 54
+        on right: 44 49 52 53
+    ExpList (72)
+        on left: 55 56
+        on right: 41 56
+    ExpOp <tree> (73)
+        on left: 57 58 59 60 61 62 63 64 65 66 67
+        on right: 57 68 69 70 71 72 73 74 75 76
     ExpP2 <tree> (74)
         on left: 68 69 70 71 72 73 74 75 76
         on right: 68 69 70 71 72 73 74 75 77 78 79
@@ -259,10 +259,10 @@ Nonterminals, with rules where they appear
         on right: 77 78 80 81 82
     Exp <tree> (76)
         on left: 80 81 82
-        on right: 18 33 34 35 36 37 38 39 53 54 55 57 80 81
+        on right: 18 33 34 35 36 37 38 39 54 55 56 58 80 81
     id <term> (77)
         on left: 83
-        on right: 2 5 8 23 24 26 45 46 47 49 50 67
+        on right: 2 5 8 23 24 26 50 51
 
 
 State 0
@@ -609,8 +609,8 @@ State 37
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 61
@@ -685,7 +685,7 @@ State 45
 
 State 46
 
-   57 ExpOp: LPARENTH . Exp RPARENTH
+   58 ExpOp: LPARENTH . Exp RPARENTH
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -699,8 +699,8 @@ State 46
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 68
@@ -708,7 +708,7 @@ State 46
 
 State 47
 
-   56 ExpOp: NOT . ExpOp
+   57 ExpOp: NOT . ExpOp
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -722,39 +722,39 @@ State 47
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 69
-    NewFunc     go to state 58
 
 
 State 48
 
-   59 ExpOp: TRUE .
-
-    $default  reduce using rule 59 (ExpOp)
-
-
-State 49
-
-   60 ExpOp: FALSE .
+   60 ExpOp: TRUE .
 
     $default  reduce using rule 60 (ExpOp)
 
 
+State 49
+
+   61 ExpOp: FALSE .
+
+    $default  reduce using rule 61 (ExpOp)
+
+
 State 50
 
-   64 ExpOp: NEW . Type LBRACK IndexList
-   67 NewFunc: NEW . id LPARENTH RPARENTH
+   48 NewFunc: NEW . WORD LPARENTH RPARENTH
+   65 ExpOp: NEW . Type LBRACK IndexList
 
-    WORD       shift, and go to state 4
+    WORD       shift, and go to state 70
     PRIMETYPE  shift, and go to state 22
 
-    Type  go to state 70
-    id    go to state 71
+    Type  go to state 71
+    id    go to state 26
 
 
 State 51
 
-   47 LeftValue: THIS . DOT id
+   47 LeftValue: THIS . DOT WORD
 
     DOT  shift, and go to state 72
 
@@ -768,23 +768,23 @@ State 52
 
 State 53
 
-   58 ExpOp: STRING_LITERAL .
+   59 ExpOp: STRING_LITERAL .
 
-    $default  reduce using rule 58 (ExpOp)
+    $default  reduce using rule 59 (ExpOp)
 
 
 State 54
 
-   61 ExpOp: INTEGER_LITERAL .
+   62 ExpOp: INTEGER_LITERAL .
 
-    $default  reduce using rule 61 (ExpOp)
+    $default  reduce using rule 62 (ExpOp)
 
 
 State 55
 
-   62 ExpOp: MethodCall .
+   63 ExpOp: MethodCall .
 
-    $default  reduce using rule 62 (ExpOp)
+    $default  reduce using rule 63 (ExpOp)
 
 
 State 56
@@ -792,32 +792,32 @@ State 56
    41 MethodCall: LeftValue . LPARENTH ExpList RPARENTH
    42           | LeftValue . LPARENTH RPARENTH
    44 LeftValue: LeftValue . LBRACK Index
-   45          | LeftValue . DOT id
-   65 ExpOp: LeftValue .
-   66      | LeftValue . DOT LENGTH
+   45          | LeftValue . DOT WORD
+   66 ExpOp: LeftValue .
+   67      | LeftValue . DOT LENGTH
 
     LBRACK    shift, and go to state 73
     LPARENTH  shift, and go to state 74
     DOT       shift, and go to state 75
 
-    $default  reduce using rule 65 (ExpOp)
+    $default  reduce using rule 66 (ExpOp)
 
 
 State 57
 
-   76 ExpP2: ExpOp .
+   46 LeftValue: NewFunc . DOT WORD
+   64 ExpOp: NewFunc .
 
-    $default  reduce using rule 76 (ExpP2)
+    DOT  shift, and go to state 76
+
+    $default  reduce using rule 64 (ExpOp)
 
 
 State 58
 
-   46 LeftValue: NewFunc . DOT id
-   63 ExpOp: NewFunc .
+   76 ExpP2: ExpOp .
 
-    DOT  shift, and go to state 76
-
-    $default  reduce using rule 63 (ExpOp)
+    $default  reduce using rule 76 (ExpP2)
 
 
 State 59
@@ -929,14 +929,14 @@ State 67
     Statement      go to state 103
     MethodCall     go to state 104
     LeftValue      go to state 105
-    LeftValue2     go to state 106
-    NewFunc        go to state 107
+    NewFunc        go to state 106
+    LeftValue2     go to state 107
     id             go to state 26
 
 
 State 68
 
-   57 ExpOp: LPARENTH Exp . RPARENTH
+   58 ExpOp: LPARENTH Exp . RPARENTH
    80 Exp: Exp . PLUS ExpP
    81    | Exp . MINUS ExpP
 
@@ -947,37 +947,33 @@ State 68
 
 State 69
 
-   56 ExpOp: NOT ExpOp .
+   57 ExpOp: NOT ExpOp .
 
-    $default  reduce using rule 56 (ExpOp)
+    $default  reduce using rule 57 (ExpOp)
 
 
 State 70
 
-   64 ExpOp: NEW Type . LBRACK IndexList
+   48 NewFunc: NEW WORD . LPARENTH RPARENTH
+   83 id: WORD .
 
-    LBRACK  shift, and go to state 109
+    LPARENTH  shift, and go to state 109
+
+    $default  reduce using rule 83 (id)
 
 
 State 71
 
-   26 Type: id . BracketsList
-   67 NewFunc: NEW id . LPARENTH RPARENTH
+   65 ExpOp: NEW Type . LBRACK IndexList
 
-    LPARENTH  shift, and go to state 110
-
-    $default  reduce using rule 28 (BracketsList)
-
-    BracketsList  go to state 33
+    LBRACK  shift, and go to state 110
 
 
 State 72
 
-   47 LeftValue: THIS DOT . id
+   47 LeftValue: THIS DOT . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 111
+    WORD  shift, and go to state 111
 
 
 State 73
@@ -996,9 +992,9 @@ State 73
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     Index       go to state 112
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 113
@@ -1022,9 +1018,9 @@ State 74
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpList     go to state 115
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 116
@@ -1032,22 +1028,18 @@ State 74
 
 State 75
 
-   45 LeftValue: LeftValue DOT . id
-   66 ExpOp: LeftValue DOT . LENGTH
+   45 LeftValue: LeftValue DOT . WORD
+   67 ExpOp: LeftValue DOT . LENGTH
 
     LENGTH  shift, and go to state 117
-    WORD    shift, and go to state 4
-
-    id  go to state 118
+    WORD    shift, and go to state 118
 
 
 State 76
 
-   46 LeftValue: NewFunc DOT . id
+   46 LeftValue: NewFunc DOT . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 119
+    WORD  shift, and go to state 119
 
 
 State 77
@@ -1066,8 +1058,8 @@ State 77
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 120
-    NewFunc     go to state 58
 
 
 State 78
@@ -1086,8 +1078,8 @@ State 78
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 121
-    NewFunc     go to state 58
 
 
 State 79
@@ -1106,8 +1098,8 @@ State 79
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 122
-    NewFunc     go to state 58
 
 
 State 80
@@ -1126,8 +1118,8 @@ State 80
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 123
-    NewFunc     go to state 58
 
 
 State 81
@@ -1146,8 +1138,8 @@ State 81
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 124
-    NewFunc     go to state 58
 
 
 State 82
@@ -1166,8 +1158,8 @@ State 82
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 125
-    NewFunc     go to state 58
 
 
 State 83
@@ -1186,8 +1178,8 @@ State 83
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 126
-    NewFunc     go to state 58
 
 
 State 84
@@ -1206,8 +1198,8 @@ State 84
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     ExpOp       go to state 127
-    NewFunc     go to state 58
 
 
 State 85
@@ -1226,8 +1218,8 @@ State 85
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 128
 
 
@@ -1247,8 +1239,8 @@ State 86
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 129
 
 
@@ -1268,8 +1260,8 @@ State 87
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 130
 
@@ -1290,8 +1282,8 @@ State 88
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 131
 
@@ -1348,14 +1340,14 @@ State 92
     Statement      go to state 103
     MethodCall     go to state 104
     LeftValue      go to state 105
-    LeftValue2     go to state 106
-    NewFunc        go to state 107
+    NewFunc        go to state 106
+    LeftValue2     go to state 107
     id             go to state 26
 
 
 State 93
 
-   50 LeftValue2: LPARENTH . NewFunc RPARENTH DOT id
+   51 LeftValue2: LPARENTH . NewFunc RPARENTH DOT id
 
     NEW  shift, and go to state 98
 
@@ -1392,11 +1384,9 @@ State 97
 
 State 98
 
-   67 NewFunc: NEW . id LPARENTH RPARENTH
+   48 NewFunc: NEW . WORD LPARENTH RPARENTH
 
-    WORD  shift, and go to state 4
-
-    id  go to state 141
+    WORD  shift, and go to state 141
 
 
 State 99
@@ -1415,8 +1405,8 @@ State 99
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 142
@@ -1469,8 +1459,8 @@ State 103
     Statement      go to state 103
     MethodCall     go to state 104
     LeftValue      go to state 105
-    LeftValue2     go to state 106
-    NewFunc        go to state 107
+    NewFunc        go to state 106
+    LeftValue2     go to state 107
     id             go to state 26
 
 
@@ -1487,7 +1477,7 @@ State 105
    41 MethodCall: LeftValue . LPARENTH ExpList RPARENTH
    42           | LeftValue . LPARENTH RPARENTH
    44 LeftValue: LeftValue . LBRACK Index
-   45          | LeftValue . DOT id
+   45          | LeftValue . DOT WORD
 
     EQUAL     shift, and go to state 147
     LBRACK    shift, and go to state 73
@@ -1497,32 +1487,39 @@ State 105
 
 State 106
 
+   46 LeftValue: NewFunc . DOT WORD
+
+    DOT  shift, and go to state 76
+
+
+State 107
+
    38 Statement: LeftValue2 . EQUAL Exp SEMICOLON
-   48 LeftValue2: LeftValue2 . LBRACK Index
-   49           | LeftValue2 . DOT id
+   49 LeftValue2: LeftValue2 . LBRACK Index
+   50           | LeftValue2 . DOT id
 
     EQUAL   shift, and go to state 149
     LBRACK  shift, and go to state 150
     DOT     shift, and go to state 151
 
 
-State 107
-
-   46 LeftValue: NewFunc . DOT id
-
-    DOT  shift, and go to state 76
-
-
 State 108
 
-   57 ExpOp: LPARENTH Exp RPARENTH .
+   58 ExpOp: LPARENTH Exp RPARENTH .
 
-    $default  reduce using rule 57 (ExpOp)
+    $default  reduce using rule 58 (ExpOp)
 
 
 State 109
 
-   64 ExpOp: NEW Type LBRACK . IndexList
+   48 NewFunc: NEW WORD LPARENTH . RPARENTH
+
+    RPARENTH  shift, and go to state 152
+
+
+State 110
+
+   65 ExpOp: NEW Type LBRACK . IndexList
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -1536,25 +1533,18 @@ State 109
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    IndexList   go to state 152
-    Index       go to state 153
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    IndexList   go to state 153
+    Index       go to state 154
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 113
 
 
-State 110
-
-   67 NewFunc: NEW id LPARENTH . RPARENTH
-
-    RPARENTH  shift, and go to state 154
-
-
 State 111
 
-   47 LeftValue: THIS DOT id .
+   47 LeftValue: THIS DOT WORD .
 
     $default  reduce using rule 47 (LeftValue)
 
@@ -1568,7 +1558,7 @@ State 112
 
 State 113
 
-   53 Index: Exp . RBRACK
+   54 Index: Exp . RBRACK
    80 Exp: Exp . PLUS ExpP
    81    | Exp . MINUS ExpP
 
@@ -1587,7 +1577,7 @@ State 114
 State 115
 
    41 MethodCall: LeftValue LPARENTH ExpList . RPARENTH
-   55 ExpList: ExpList . COMMA Exp
+   56 ExpList: ExpList . COMMA Exp
 
     RPARENTH  shift, and go to state 156
     COMMA     shift, and go to state 157
@@ -1595,33 +1585,33 @@ State 115
 
 State 116
 
-   54 ExpList: Exp .
+   55 ExpList: Exp .
    80 Exp: Exp . PLUS ExpP
    81    | Exp . MINUS ExpP
 
     PLUS   shift, and go to state 87
     MINUS  shift, and go to state 88
 
-    $default  reduce using rule 54 (ExpList)
+    $default  reduce using rule 55 (ExpList)
 
 
 State 117
 
-   66 ExpOp: LeftValue DOT LENGTH .
+   67 ExpOp: LeftValue DOT LENGTH .
 
-    $default  reduce using rule 66 (ExpOp)
+    $default  reduce using rule 67 (ExpOp)
 
 
 State 118
 
-   45 LeftValue: LeftValue DOT id .
+   45 LeftValue: LeftValue DOT WORD .
 
     $default  reduce using rule 45 (LeftValue)
 
 
 State 119
 
-   46 LeftValue: NewFunc DOT id .
+   46 LeftValue: NewFunc DOT WORD .
 
     $default  reduce using rule 46 (LeftValue)
 
@@ -1777,8 +1767,8 @@ State 132
     Statement      go to state 103
     MethodCall     go to state 104
     LeftValue      go to state 105
-    LeftValue2     go to state 106
-    NewFunc        go to state 107
+    NewFunc        go to state 106
+    LeftValue2     go to state 107
     id             go to state 26
 
 
@@ -1810,7 +1800,7 @@ State 135
 
 State 136
 
-   50 LeftValue2: LPARENTH NewFunc . RPARENTH DOT id
+   51 LeftValue2: LPARENTH NewFunc . RPARENTH DOT id
 
     RPARENTH  shift, and go to state 161
 
@@ -1831,8 +1821,8 @@ State 137
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 162
@@ -1854,8 +1844,8 @@ State 138
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 163
@@ -1877,8 +1867,8 @@ State 139
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 164
@@ -1900,8 +1890,8 @@ State 140
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 165
@@ -1909,9 +1899,9 @@ State 140
 
 State 141
 
-   67 NewFunc: NEW id . LPARENTH RPARENTH
+   48 NewFunc: NEW WORD . LPARENTH RPARENTH
 
-    LPARENTH  shift, and go to state 110
+    LPARENTH  shift, and go to state 109
 
 
 State 142
@@ -1975,8 +1965,8 @@ State 147
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 169
@@ -1984,11 +1974,9 @@ State 147
 
 State 148
 
-   45 LeftValue: LeftValue DOT . id
+   45 LeftValue: LeftValue DOT . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 118
+    WORD  shift, and go to state 118
 
 
 State 149
@@ -2007,8 +1995,8 @@ State 149
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 170
@@ -2016,7 +2004,7 @@ State 149
 
 State 150
 
-   48 LeftValue2: LeftValue2 LBRACK . Index
+   49 LeftValue2: LeftValue2 LBRACK . Index
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -2030,9 +2018,9 @@ State 150
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     Index       go to state 171
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 113
@@ -2040,7 +2028,7 @@ State 150
 
 State 151
 
-   49 LeftValue2: LeftValue2 DOT . id
+   50 LeftValue2: LeftValue2 DOT . id
 
     WORD  shift, and go to state 4
 
@@ -2049,33 +2037,33 @@ State 151
 
 State 152
 
-   64 ExpOp: NEW Type LBRACK IndexList .
+   48 NewFunc: NEW WORD LPARENTH RPARENTH .
 
-    $default  reduce using rule 64 (ExpOp)
+    $default  reduce using rule 48 (NewFunc)
 
 
 State 153
 
-   51 IndexList: Index . LBRACK IndexList
-   52          | Index .
+   65 ExpOp: NEW Type LBRACK IndexList .
 
-    LBRACK  shift, and go to state 173
-
-    $default  reduce using rule 52 (IndexList)
+    $default  reduce using rule 65 (ExpOp)
 
 
 State 154
 
-   67 NewFunc: NEW id LPARENTH RPARENTH .
+   52 IndexList: Index . LBRACK IndexList
+   53          | Index .
 
-    $default  reduce using rule 67 (NewFunc)
+    LBRACK  shift, and go to state 173
+
+    $default  reduce using rule 53 (IndexList)
 
 
 State 155
 
-   53 Index: Exp RBRACK .
+   54 Index: Exp RBRACK .
 
-    $default  reduce using rule 53 (Index)
+    $default  reduce using rule 54 (Index)
 
 
 State 156
@@ -2087,7 +2075,7 @@ State 156
 
 State 157
 
-   55 ExpList: ExpList COMMA . Exp
+   56 ExpList: ExpList COMMA . Exp
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -2101,8 +2089,8 @@ State 157
 
     MethodCall  go to state 55
     LeftValue   go to state 56
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    NewFunc     go to state 57
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 174
@@ -2131,7 +2119,7 @@ State 160
 
 State 161
 
-   50 LeftValue2: LPARENTH NewFunc RPARENTH . DOT id
+   51 LeftValue2: LPARENTH NewFunc RPARENTH . DOT id
 
     DOT  shift, and go to state 176
 
@@ -2225,21 +2213,21 @@ State 170
 
 State 171
 
-   48 LeftValue2: LeftValue2 LBRACK Index .
-
-    $default  reduce using rule 48 (LeftValue2)
-
-
-State 172
-
-   49 LeftValue2: LeftValue2 DOT id .
+   49 LeftValue2: LeftValue2 LBRACK Index .
 
     $default  reduce using rule 49 (LeftValue2)
 
 
+State 172
+
+   50 LeftValue2: LeftValue2 DOT id .
+
+    $default  reduce using rule 50 (LeftValue2)
+
+
 State 173
 
-   51 IndexList: Index LBRACK . IndexList
+   52 IndexList: Index LBRACK . IndexList
 
     LPARENTH         shift, and go to state 46
     NOT              shift, and go to state 47
@@ -2253,10 +2241,10 @@ State 173
 
     MethodCall  go to state 55
     LeftValue   go to state 56
+    NewFunc     go to state 57
     IndexList   go to state 183
-    Index       go to state 153
-    ExpOp       go to state 57
-    NewFunc     go to state 58
+    Index       go to state 154
+    ExpOp       go to state 58
     ExpP2       go to state 59
     ExpP        go to state 60
     Exp         go to state 113
@@ -2264,14 +2252,14 @@ State 173
 
 State 174
 
-   55 ExpList: ExpList COMMA Exp .
+   56 ExpList: ExpList COMMA Exp .
    80 Exp: Exp . PLUS ExpP
    81    | Exp . MINUS ExpP
 
     PLUS   shift, and go to state 87
     MINUS  shift, and go to state 88
 
-    $default  reduce using rule 55 (ExpList)
+    $default  reduce using rule 56 (ExpList)
 
 
 State 175
@@ -2283,7 +2271,7 @@ State 175
 
 State 176
 
-   50 LeftValue2: LPARENTH NewFunc RPARENTH DOT . id
+   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT . id
 
     WORD  shift, and go to state 4
 
@@ -2310,8 +2298,8 @@ State 177
     Statement   go to state 185
     MethodCall  go to state 104
     LeftValue   go to state 105
-    LeftValue2  go to state 106
-    NewFunc     go to state 107
+    NewFunc     go to state 106
+    LeftValue2  go to state 107
     id          go to state 26
 
 
@@ -2335,8 +2323,8 @@ State 178
     Statement   go to state 186
     MethodCall  go to state 104
     LeftValue   go to state 105
-    LeftValue2  go to state 106
-    NewFunc     go to state 107
+    NewFunc     go to state 106
+    LeftValue2  go to state 107
     id          go to state 26
 
 
@@ -2370,16 +2358,16 @@ State 182
 
 State 183
 
-   51 IndexList: Index LBRACK IndexList .
+   52 IndexList: Index LBRACK IndexList .
 
-    $default  reduce using rule 51 (IndexList)
+    $default  reduce using rule 52 (IndexList)
 
 
 State 184
 
-   50 LeftValue2: LPARENTH NewFunc RPARENTH DOT id .
+   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT id .
 
-    $default  reduce using rule 50 (LeftValue2)
+    $default  reduce using rule 51 (LeftValue2)
 
 
 State 185
@@ -2430,8 +2418,8 @@ State 189
     Statement   go to state 190
     MethodCall  go to state 104
     LeftValue   go to state 105
-    LeftValue2  go to state 106
-    NewFunc     go to state 107
+    NewFunc     go to state 106
+    LeftValue2  go to state 107
     id          go to state 26
 
 
