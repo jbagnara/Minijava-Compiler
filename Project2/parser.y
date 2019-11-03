@@ -12,13 +12,13 @@ extern int yylex();
 struct nonTerm;
 struct ast;
 struct nonTerm* solveAst(struct ast*);
-struct numLinkList;
+struct astList;
 struct strArr;
 struct statement;
 
 
-void typeViolation(){
-	printf("Type Violation in Line %d\n", yylineno);
+void typeViolation(int lineno){
+	printf("Type Violation in Line %d\n", lineno);
 	exit(1);
 }
 
@@ -62,7 +62,7 @@ typedef struct nonTerm {		//nonterminals, stores unformated symbol table entry
 		char* str;
 		int num;
 		struct nonTerm** arr;	
-		struct numLinkList* numArr;
+		struct astList* numArr;
 		struct classRef* class;
 	} value;
 } nonTerm;
@@ -85,13 +85,14 @@ typedef struct ast {			//stores a subtree to be solved at execution
 	struct ast* node2;
 } ast;
 
-typedef struct numLinkList{		//linked list of array size information
+typedef struct astList{		//linked list of array size information
 	ast* num;
-	struct numLinkList* next;
-} numLinkList;
+	struct astList* next;
+} astList;
 
 typedef struct classLinkList{
 	char* name;
+	astList* exp;
 	struct classLinkList* next;
 } classLinkList;
 
@@ -105,7 +106,7 @@ typedef struct classRef {
 
 typedef struct strArr {			//stores array variable
 	char* str;
-	numLinkList* num;
+	astList* num;
 	classLinkList* class;
 } strArr;
 
@@ -113,6 +114,7 @@ typedef struct symbol {			//entry to symbol table
 	char* name;
 	nonTerm* term;
 	struct symbol* next;
+	ast* tree;
 } sym;
 
 typedef struct symStack {		//symbol table stack for accessing classes
@@ -122,8 +124,30 @@ typedef struct symStack {		//symbol table stack for accessing classes
 	struct symStack* prev;
 } symStack;
 
+typedef struct argList {
+} argList;
+
+typedef struct methodList {
+	char* name;
+	arrType* type;
+	sym* arg;
+	struct statement* statementList;
+	struct methodList* next;
+} methodList;
+
+typedef struct varMethodList {
+	sym* table;
+	methodList* methods;
+} varMethodList;
+
+typedef struct classEntry {
+	char* name;
+	varMethodList* list;
+} classEntry;
+
 typedef struct classList {
-	
+	classEntry* class;
+	struct classList* next;	
 } classList;
 
 typedef enum cmd {
@@ -149,6 +173,7 @@ typedef struct statement {		//Executable command list
 	arrType* type;
 	sym* varDecl;
 	struct statement* next;
+	int lineno;
 } statement;
 
 
@@ -157,7 +182,9 @@ sym* head;		//head of current symbol table
 sym* tail;
 symStack* table;	//symbol table stack
 statement* temp;
-
+classList* classes;
+classList* classesTail;
+int line = 0;
 
 nonTerm* execStatement(statement*);
 
@@ -193,7 +220,7 @@ nonTerm* mkNonTerm(int type, void* val){
 	return term;
 }
 
-nonTerm* searchNonTermArr(nonTerm* arr, numLinkList* num){
+nonTerm* searchNonTermArr(nonTerm* arr, astList* num){
 	if(num==NULL)
 		return arr;
 	if(num->next==NULL){
@@ -202,12 +229,12 @@ nonTerm* searchNonTermArr(nonTerm* arr, numLinkList* num){
 	return searchNonTermArr(arr->value.arr[solveAst(num->num)->value.num], num->next);
 }
 
-nonTerm* mkNonTermArr(int type, numLinkList* list){	//builds array given dimensions
+nonTerm* mkNonTermArr(int type, astList* list){	//builds array given dimensions
 	if(list == NULL){
 		return mkNonTerm(type, NULL);		//leaf
 	}
 
-	nonTerm* arr = mkNonTerm(ARR, list->num);
+	nonTerm* arr = mkNonTerm(ARR, &solveAst(list->num)->value.num);
 	for(int x=0; x<solveAst(list->num)->value.num; x++){
 		arr->value.arr[x] = mkNonTermArr(type, list->next);
 	}
@@ -298,6 +325,38 @@ sym* search(char* name){
 	return NULL;
 }
 
+void classInsert(classEntry* class){
+	classesTail->next = malloc(sizeof(classList));
+	classesTail->next->class = (classEntry*)class;
+	classesTail = classesTail->next;	
+}
+
+classEntry* classSearch(char* name){
+	classList* current = classes->next;
+	while(current!=NULL){
+		if(!strcmp(name, current->class->name)){
+			return current->class;
+		}
+		current = current->next;	
+	}
+	return NULL;	
+}
+
+methodList* methodSearch(char* className, char* methodName){
+	classEntry* class = classSearch(className);
+	if(class==NULL)	//class not found
+		typeViolation(line);
+
+	methodList* current = class->list->methods;
+	while(current!=NULL){
+		if(!strcmp(methodName, current->name))
+			return current;
+		current = current->next;
+	}
+	return NULL;
+	
+}
+
 statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftVal, ast* exp, arrType* type, sym* varDecl){
 	statement* exec = malloc(sizeof(statement));
 	exec->command = command;
@@ -308,6 +367,37 @@ statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftV
 	exec->type = type;
 	exec->varDecl = varDecl;
 	exec->next = NULL;
+	exec->lineno = yylineno;
+}
+
+statement* initArgs(sym* list, sym* input){			//do type checks! ***
+	statement* current = NULL;
+	statement* stateHead = current;
+	sym* itr = list;
+	while(itr!=NULL) {
+		if(current==NULL){
+			current = mkStatement(DECL, NULL, itr->name,  NULL, NULL, itr->term->arrType, itr);
+			stateHead = current;
+		}
+		else{
+			current->next = mkStatement(DECL, NULL, itr->name,  NULL, NULL, itr->term->arrType, itr);
+			current = current->next;
+		}
+		itr = itr->next;
+	}
+	itr = list;
+	while(input!=NULL){	
+		strArr* this = malloc(sizeof(strArr));
+		this->str = itr->name;
+		current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
+		current = current->next;
+		input = input->next;
+		itr = itr->next;
+	}
+	return stateHead;
+
+	//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
+	//statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
 }
 
 void printExp(nonTerm* term, int nline){
@@ -332,17 +422,36 @@ void printExp(nonTerm* term, int nline){
 		break;
 	case ARR:
 		printf("uhh\n");
-		typeViolation();	
+		typeViolation(line);	
 	}
 }
 
 nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
 		if (tree->isVar){	//var
-
 			if(tree->str->class!=NULL){		//class shenanigans
+				//gotta convert input to terms with solveAst!!
+				methodList* method = methodSearch(tree->str->str, tree->str->class->name);
+				statement* statementList = method->statementList;
+				astList* input = tree->str->class->exp;
+				sym* formInput = malloc(sizeof(sym));
+				sym* formhead = formInput;
+				while(input!=NULL){
+					formInput->term = solveAst(input->num);
+					formInput = formInput->next;
+					formInput = malloc(sizeof(sym));
+					input = input->next;
+				}	
+				statement* init = NULL;
+				if(method->arg!=NULL&&formhead!=NULL)
+					init = initArgs(method->arg, formhead);	//input declarations
+
 				pushTable();
-				nonTerm* ret = execStatement((statement*)temp);
+				if(statementList==NULL)
+					typeViolation(line);
+				if(init!=NULL)
+					execStatement(init);
+				nonTerm* ret = execStatement(statementList);
 				popTable();
 				return ret;
 			}
@@ -357,7 +466,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		nonTerm* term1 = solveAst(tree->node1);
 		nonTerm* term2 = solveAst(tree->node2);
 		if(term1->type!=term2->type)
-			typeViolation();
+			typeViolation(line);
 	
 		switch(term1->type){
 		case INT:{
@@ -407,7 +516,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				break;
 			default:
 				printf("invalid int operation %d\n", term1->type );
-				typeViolation();
+				typeViolation(line);
 			}
 		break;
 		}
@@ -434,25 +543,45 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				break;
 			default:
 				printf("invalid bool operation %d\n", term1->type );
-				typeViolation();
+				typeViolation(line);
 			}
 		break;
+		}
+		case STRING:{
+			char* val1 = term1->value.str;
+			char* val2 = term2->value.str;
+			char* res;
+			switch(tree->node.op){
+			case PLUSy:
+				res = malloc(sizeof(char)*1000);		//lol
+				strcpy(res, val1);
+				strcat(res, val2);
+				free(val1);
+				free(val2);	
+				return mkNonTerm(STRING, res);
+				break;
+			}
 		}
 		case ARR:
 			return mkNonTerm(ARR, tree->node.leaf);
 		default:
 			printf("type %d not implemented in ast\n", term1->type);
-			typeViolation();
+			typeViolation(line);
 		}
 	}
 }
 nonTerm* execStatement(statement* statem){
+	if(statem==NULL)	//woah slow down there bub, you're not going anywhere
+		return NULL;
+	line = statem->lineno;
 	switch(statem->command){
 	case DECL:{	
 		sym* head = statem->varDecl;
 		head->name = statem->word1;
 		arrType* thisType = statem->type;
 		while(head!=NULL){
+			if(head->term==NULL&&head->tree!=NULL)
+				head->term = solveAst(head->tree);
 			if(search(head->name)==NULL){	//Does not exist in sym table
 				if(head->term==NULL){	//Declared but not initialized
 					insert(thisType->type, head->name);
@@ -464,7 +593,7 @@ nonTerm* execStatement(statement* statem){
 
 						} else {
 							printf("Incompatible types\n");
-							typeViolation();		
+							typeViolation(line);		
 						} 
 					}
 					insert(thisType->type, head->name);
@@ -474,7 +603,7 @@ nonTerm* execStatement(statement* statem){
 					search(head->name)->term = head->term;
 				}
 			} else {
-				typeViolation();		//Already declared
+				typeViolation(line);		//Already declared
 			}
 			head = head->next;
 		}
@@ -515,7 +644,7 @@ nonTerm* execStatement(statement* statem){
 	}
 	default:
 		printf("something bad happened %d\n", statem->command);
-		typeViolation();
+		typeViolation(line);
 	}
 	if(statem->next!=NULL)
 		return execStatement(statem->next);
@@ -554,7 +683,7 @@ varType setType(char* type){
 		return BOOL;
 	} else{
 		printf("usermade types not implemented yet\n");
-		typeViolation();
+		typeViolation(line);
 	}
 }
 
@@ -562,6 +691,8 @@ varType setType(char* type){
 
 int main(int argc, char** argv){
 	pushTable();	//pushes main class symbol table to stack
+	classes = malloc(sizeof(classList));	//init class list
+	classesTail = classes;
 	#ifdef YYDEBUG
 	yydebug = 1;
 	#endif
@@ -585,7 +716,7 @@ int main(int argc, char** argv){
 
 %code requires{
 
-	struct numLinkListY;
+	struct astListY;
 
 	typedef enum varTypeY{
 		UNDECY 		= -1,
@@ -627,7 +758,7 @@ int main(int argc, char** argv){
 			char* str;
 			int num;
 			struct nonTerm** arr;	
-			struct numLinkListY* numArr;
+			struct astListY* numArr;
 			struct classRefY* class;
 		} value;
 	} nonTermY;
@@ -660,19 +791,20 @@ int main(int argc, char** argv){
 		struct astY* node2;
 	} astY;
 
-	typedef struct numLinkListY{
+	typedef struct astListY{
 		astY* num;
-		struct numLinkListY* next;
-	} numLinkListY;
+		struct astListY* next;
+	} astListY;
 
 	typedef struct classLinkListY{
 		char* name;
+		astListY* exp;
 		struct classLinkListY* next;
 	} classLinkListY;
 
 	typedef struct strArrY {
 		char* str;
-		numLinkListY* num;
+		astListY* num;
 		classLinkListY* class;
 	} strArrY;
 
@@ -680,7 +812,32 @@ int main(int argc, char** argv){
 		char* name;
 		nonTermY* term;
 		struct symbolY* next;
+		astY* tree;
 	} symY;
+
+
+	typedef struct methodListY {
+		char* name;
+		arrTypeY* type;
+		symY* arg;
+		struct statementY* statementList;
+		struct methodListY* next;
+	} methodListY;
+
+	typedef struct varMethodListY {
+		symY* table;
+		methodListY* methods;
+	} varMethodListY;
+
+	typedef struct classEntryY {
+		char* name;
+		varMethodListY* list;
+	} classEntryY;
+
+	typedef struct classListY {
+		classEntryY* class;
+		struct classList* next;	
+	} classListY;
 
 	typedef enum cmdY {
 		DECLY 		= 0,
@@ -710,7 +867,7 @@ int main(int argc, char** argv){
 
 %union{
 	int num;
-	numLinkListY* numList;
+	astListY* numList;
 	char* str;
 	nonTermY term;
 	arrTypeY* type;
@@ -718,18 +875,26 @@ int main(int argc, char** argv){
 	symY* termList;
 	statementY* statem;
 	strArrY* strarr;
+	methodListY* methList;
+	varMethodListY* varMethList;
+	classEntryY* clEntry;
+	classListY* clList;
 }
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
 %type<strarr> LeftValue LeftValue2 NewFunc MethodCall
 %type<num> BracketsList 
-%type<numList> IndexList
-%type<term> id VarOrMethod
-%type<termList> VarInitList VarMethodDecl MethodDecl VarDecl VarInit //LeftValue LeftValue2
+%type<numList> IndexList ExpList
+%type<term> id 
+%type<termList> VarInitList VarDecl VarInit FormalList FormalListMaybe
 %type<tree> Exp ExpP ExpP2 ExpOp Index
 %type<type> Type
 %type<statem> Statement StatementList MainClass Program
+%type<methList> MethodDecl 
+%type<varMethList> VarMethodDecl VarOrMethod VarMethodDeclList
+%type<clEntry> ClassDecl
+%type<clList> ClassDeclList
 
 
 %%
@@ -747,12 +912,19 @@ MainClass:
 	;
 
 ClassDeclList:
-	ClassDecl ClassDeclList
-	|/*empty*/
+	ClassDecl ClassDeclList {
+		classInsert((classEntry*)$1);
+	}
+	|/*empty*/	{}
 	;
 
 ClassDecl:
-	CLASS id ParentMaybe LBRACE VarMethodDeclList RBRACE
+	CLASS WORD ParentMaybe LBRACE VarMethodDeclList RBRACE	{
+		classEntryY* class = malloc(sizeof(classEntryY));
+		class->list = $5;
+		class->name = $2;
+		$$ = class;
+	}
 	;
 
 ParentMaybe:
@@ -765,20 +937,45 @@ Parent:
 	;
 
 VarMethodDeclList:
-	VarOrMethod VarMethodDeclList
-	| /*empty*/
+	VarOrMethod VarMethodDeclList	{
+		$1->methods->next = $2->methods;
+		$$ = $1;	
+	}
+	| /*empty*/	{}
 	;
 
 VarOrMethod:
-	Type WORD VarMethodDecl		{			//DO INSERTIONS HERE***
+	Type WORD VarMethodDecl		{				//no vars yet
+		if($3->methods==NULL){		//declare vars
+			//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
+			$3->table->term->arrType = $1;		//arrays dont work	
+		} else {			//method
+			$3->methods->type = $1;
+			$3->methods->name = $2;
+		}
+		$$ = $3;
+		
 	}
 	| PUBLIC Type WORD MethodDecl	{ 
+		varMethodList* list = malloc(sizeof(varMethodList));
+		list->methods = (methodList*)$4;
+		list->methods->type = (arrType*)$2;
+		list->methods->name = $3;
+		$$ = (varMethodListY*)list;
 	}
 	;
 
 VarMethodDecl:
-	VarDecl					{$$ = $1;}
+	VarDecl {
+		varMethodList* list = malloc(sizeof(varMethodList));
+		list->table = (sym*)$1;
+		$$ = (varMethodListY*)list;
+		
+	}
 	| MethodDecl {
+		varMethodList* list = malloc(sizeof(varMethodList));
+		list->methods = (methodList*)$1;
+		$$ = (varMethodListY*)list;
 	}
 	;
 
@@ -804,7 +1001,8 @@ VarInit:
 	EQUAL Exp {
 		//$$ = *(nonTermY*)solveAst((ast*)$2);
 		symY* var = malloc(sizeof(symY));
-		var->term = (nonTermY*)solveAst((ast*)$2);
+		//var->term = (nonTermY*)solveAst((ast*)$2);
+		var->tree = $2;
 		$$ = var;
 	}
 	| /*empty*/			{
@@ -815,18 +1013,42 @@ VarInit:
 
 MethodDecl:
 	LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE	{		//FIX
-		temp = $5;
+		methodList* methods = malloc(sizeof(methodList));
+		methods->arg = (sym*)$2;
+		methods->statementList = (statement*)$5;
+		$$ = (methodListY*)methods;
 	}
 	;
 
 FormalListMaybe:
-	FormalList
-	| /*empty*/
+	FormalList {
+		$$ = $1;
+	}
+	| /*empty*/ {
+		$$ = NULL;
+	}
 	;
 
 FormalList:
-	Type id
-	| Type id COMMA FormalList
+	Type WORD {									//no array support
+		symY* var = malloc(sizeof(symY));
+		//var->term = (nonTermY*)solveAst((ast*)$2);
+		var->name = $2;
+		var->term = malloc(sizeof(nonTerm));
+		var->term->arrType = $1;
+		var->term->type = $1->type;
+		$$ = var;
+	}
+	| Type WORD COMMA FormalList {
+		symY* var = malloc(sizeof(symY));
+		//var->term = (nonTermY*)solveAst((ast*)$2);
+		var->name = $2;
+		var->term = malloc(sizeof(nonTermY));
+		var->term->arrType = $1;
+		var->term->type = $1->type;
+		var->next = $4;
+		$$ = var;
+	}
 
 Type:
 	PRIMETYPE BracketsList			{
@@ -901,8 +1123,22 @@ Statement:
 
 
 MethodCall:
-	LeftValue LPARENTH ExpList RPARENTH			{}
-	| LeftValue LPARENTH RPARENTH				{}
+	LeftValue LPARENTH ExpList RPARENTH			{
+		strArrY* this = $1;
+		//symY* this2 = $3;
+
+		classLinkList* current = (classLinkList*)$1->class;		
+		while(current->next!=NULL)
+			current=current->next;
+
+		current->exp = (astList*)$3;
+
+		$$ = $1;
+	
+	}
+	| LeftValue LPARENTH RPARENTH				{
+		$$ = $1;
+	}
 	;
 
 LeftValue:
@@ -917,15 +1153,15 @@ LeftValue:
 	}
 	| LeftValue LBRACK Index 	{
 		if($1->num == NULL){		//first deg of array
-			$1->num = malloc(sizeof(numLinkListY));
+			$1->num = malloc(sizeof(astListY));
 			$1->num->num = $3;
 		} else {
 
-		numLinkListY* current = $1->num;
+		astListY* current = $1->num;
 		while(current->next!=NULL)
 			current = current->next;	//points to tail
 
-		current->next = malloc(sizeof(numLinkListY));
+		current->next = malloc(sizeof(astListY));
 		current->next->num = $3;
 	
 		}
@@ -949,6 +1185,7 @@ LeftValue:
 		printf("zobbles!\n");
 	}
 	| NewFunc DOT WORD		{
+		char* str = $3;
 		$1->class = malloc(sizeof(classLinkListY));
 		$1->class->name = $3;
 		$$ = $1;
@@ -968,17 +1205,17 @@ NewFunc:
 LeftValue2:	
 	LeftValue2 LBRACK Index
 	| LeftValue2 DOT id
-	| LPARENTH NewFunc RPARENTH DOT id
+	| LPARENTH NewFunc RPARENTH DOT id	{}					//dunno what to do with this
 	;
 
 IndexList:				//returns list of ints to define array
 	Index LBRACK IndexList {
-		$$ = malloc(sizeof(numLinkListY));
+		$$ = malloc(sizeof(astListY));
 		$$->num = $1;
 		$$->next = $3;	
 	}
 	| Index {
-		$$ = malloc(sizeof(numLinkListY));
+		$$ = malloc(sizeof(astListY));
 		$$->num = $1;
 	}
 
@@ -989,12 +1226,26 @@ Index:
 	;
 
 ExpList:
-	Exp
-	| ExpList COMMA Exp
+	Exp {
+		astList* list = malloc(sizeof(astList));
+		list->num = (ast*)$1;
+		$$ = (astListY*)list;
+	}
+	| Exp COMMA ExpList {
+		astList* list = malloc(sizeof(astList));
+		list->num = (ast*)$1;
+		list->next = (astList*)$3;	
+		$$ = (astListY*)list;
+	}
 	;
 
 ExpOp:
-	NOT ExpOp			{}//{$$ = !$2;}
+	NOT ExpOp{
+		int* zero = malloc(sizeof(int));
+		*zero = 0;
+		astY* zed = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)zero));
+		$$ = (astY*)mkNode((ast*)$2, (ast*)zed, EQUIVALENTy);
+	}
 	| LPARENTH Exp RPARENTH		{$$ = $2;}
 	| STRING_LITERAL {
 		$$ = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)$1));
@@ -1008,48 +1259,56 @@ ExpOp:
 	| INTEGER_LITERAL {
 		$$ = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&$1));
 	}
-	| MethodCall			{
+	| MethodCall {
 		if($1!=NULL){
 			$$ = (astY*)mkLeafStr((strArr*)$1);
 		}	
 	}
-	| NewFunc			{
+	| NewFunc {
 	}
-	| NEW Type LBRACK IndexList	{		//CREATE ENTIRE ARRAY USING LIST OF INT
-		$$ = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (numLinkList*)$4));
+	| NEW Type LBRACK IndexList {		//CREATE ENTIRE ARRAY USING LIST OF INT
+		$$ = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (astList*)$4));
 		$$->node.leaf->arrType = $2;
 
 	}
-	| LeftValue			{
+	| LeftValue {
 		if($1!=NULL){
 			$$ = (astY*)mkLeafStr((strArr*)$1);
 		}
 	}
-	| LeftValue DOT LENGTH		{}	
+	| LeftValue DOT LENGTH		{}
+	| MINUS ExpOp {
+		int* neg = malloc(sizeof(int));
+		*neg = -1;
+		$$ = (astY*)mkNode((ast*)$2, (ast*)mkLeaf(mkNonTerm(INTY, (void*)neg)), STARY);
+	}
+	| PLUS ExpOp {
+		$$ = $2;
+	}					
 	;
 
 ExpP2: 
-	ExpP2 AND ExpOp			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ANDY);}
-	| ExpP2 OR ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ORY);}
-	| ExpP2 LESS ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSY);}
-	| ExpP2 GREAT ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATY);}	
-	| ExpP2 LESSEQ ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSEQY);}	
-	| ExpP2 GREATEQ ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATEQY);}	
-	| ExpP2 EQUIVALENT ExpOp	{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, EQUIVALENTY);}
-	| ExpP2 NOTEQUAL ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, NOTEQUALY);}
+	ExpP2 STAR ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, STARY);}
+	| ExpP2 SLASH ExpOp		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, SLASHY);}
 	| ExpOp				{$$ = $1;}
 	;
 
 ExpP:
-	ExpP STAR ExpP2			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, STARY);}
-	| ExpP SLASH ExpP2		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, SLASHY);}
+	ExpP PLUS ExpP2			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, PLUSY);}
+	| ExpP MINUS ExpP2		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, MINUSY);}
 	| ExpP2				{$$ = $1;}
 	;
 
 Exp:
-	Exp PLUS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, PLUSY);}
-	| Exp MINUS ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, MINUSY);}
-	| ExpP				{$$ = $1;}
+	Exp AND ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ANDY);}
+	| Exp OR ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, ORY);}
+	| Exp LESS ExpP			{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSY);}
+	| Exp GREAT ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATY);}	
+	| Exp LESSEQ ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, LESSEQY);}	
+	| Exp GREATEQ ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, GREATEQY);}	
+	| Exp EQUIVALENT ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, EQUIVALENTY);}
+	| Exp NOTEQUAL ExpP		{$$ = (astY*)mkNode((ast*)$1, (ast*)$3, NOTEQUALY);}
+	| ExpP
 	;
 
 id:

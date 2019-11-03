@@ -44,10 +44,10 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 586 "parser.y"
+#line 717 "parser.y"
 
 
-	struct numLinkListY;
+	struct astListY;
 
 	typedef enum varTypeY{
 		UNDECY 		= -1,
@@ -89,7 +89,7 @@ extern int yydebug;
 			char* str;
 			int num;
 			struct nonTerm** arr;	
-			struct numLinkListY* numArr;
+			struct astListY* numArr;
 			struct classRefY* class;
 		} value;
 	} nonTermY;
@@ -122,19 +122,20 @@ extern int yydebug;
 		struct astY* node2;
 	} astY;
 
-	typedef struct numLinkListY{
+	typedef struct astListY{
 		astY* num;
-		struct numLinkListY* next;
-	} numLinkListY;
+		struct astListY* next;
+	} astListY;
 
 	typedef struct classLinkListY{
 		char* name;
+		astListY* exp;
 		struct classLinkListY* next;
 	} classLinkListY;
 
 	typedef struct strArrY {
 		char* str;
-		numLinkListY* num;
+		astListY* num;
 		classLinkListY* class;
 	} strArrY;
 
@@ -142,7 +143,32 @@ extern int yydebug;
 		char* name;
 		nonTermY* term;
 		struct symbolY* next;
+		astY* tree;
 	} symY;
+
+
+	typedef struct methodListY {
+		char* name;
+		arrTypeY* type;
+		symY* arg;
+		struct statementY* statementList;
+		struct methodListY* next;
+	} methodListY;
+
+	typedef struct varMethodListY {
+		symY* table;
+		methodListY* methods;
+	} varMethodListY;
+
+	typedef struct classEntryY {
+		char* name;
+		varMethodListY* list;
+	} classEntryY;
+
+	typedef struct classListY {
+		classEntryY* class;
+		struct classList* next;	
+	} classListY;
 
 	typedef enum cmdY {
 		DECLY 		= 0,
@@ -169,7 +195,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 173 "y.tab.h"
+#line 199 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -270,10 +296,10 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 711 "parser.y"
+#line 868 "parser.y"
 
 	int num;
-	numLinkListY* numList;
+	astListY* numList;
 	char* str;
 	nonTermY term;
 	arrTypeY* type;
@@ -281,8 +307,12 @@ union YYSTYPE
 	symY* termList;
 	statementY* statem;
 	strArrY* strarr;
+	methodListY* methList;
+	varMethodListY* varMethList;
+	classEntryY* clEntry;
+	classListY* clList;
 
-#line 286 "y.tab.h"
+#line 316 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

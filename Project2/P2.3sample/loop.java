@@ -3,7 +3,6 @@
 class loop {
     public static void main(String [] args) {
         System.out.print("Factorial of 10 is:");
-	int x = 5;
         System.out.println(new Factorial().compute10());
     }
 }
