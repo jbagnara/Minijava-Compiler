@@ -184,6 +184,7 @@ symStack* table;	//symbol table stack
 statement* temp;
 classList* classes;
 classList* classesTail;
+classEntry* currentClass;
 int line = 0;
 
 nonTerm* execStatement(statement*);
@@ -277,7 +278,8 @@ void printAst(ast* tree){
 	}
 }
 
-void pushTable(){				//pushes new symbol table
+void pushTable(classEntry* class){			//pushes new symbol table
+	currentClass = class;
 	symStack* thisTable = malloc(sizeof(symStack));
 
 
@@ -371,22 +373,10 @@ statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftV
 }
 
 statement* initArgs(sym* list, sym* input){			//do type checks! ***
-	statement* current = NULL;
+	statement* current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, list);
 	statement* stateHead = current;
 	sym* itr = list;
-	while(itr!=NULL) {
-		if(current==NULL){
-			current = mkStatement(DECL, NULL, itr->name,  NULL, NULL, itr->term->arrType, itr);
-			stateHead = current;
-		}
-		else{
-			current->next = mkStatement(DECL, NULL, itr->name,  NULL, NULL, itr->term->arrType, itr);
-			current = current->next;
-		}
-		itr = itr->next;
-	}
-	itr = list;
-	while(input!=NULL){	
+	while(input!=NULL&&itr!=NULL){	
 		strArr* this = malloc(sizeof(strArr));
 		this->str = itr->name;
 		current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
@@ -431,6 +421,8 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		if (tree->isVar){	//var
 			if(tree->str->class!=NULL){		//class shenanigans
 				//gotta convert input to terms with solveAst!!
+				if(tree->str->str==NULL)
+					tree->str->str = currentClass->name;
 				methodList* method = methodSearch(tree->str->str, tree->str->class->name);
 				statement* statementList = method->statementList;
 				astList* input = tree->str->class->exp;
@@ -438,15 +430,15 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				sym* formhead = formInput;
 				while(input!=NULL){
 					formInput->term = solveAst(input->num);
+					formInput->next = malloc(sizeof(sym));
 					formInput = formInput->next;
-					formInput = malloc(sizeof(sym));
 					input = input->next;
 				}	
 				statement* init = NULL;
 				if(method->arg!=NULL&&formhead!=NULL)
 					init = initArgs(method->arg, formhead);	//input declarations
 
-				pushTable();
+				pushTable(classSearch(tree->str->str));
 				if(statementList==NULL)
 					typeViolation(line);
 				if(init!=NULL)
@@ -576,17 +568,18 @@ nonTerm* execStatement(statement* statem){
 	line = statem->lineno;
 	switch(statem->command){
 	case DECL:{	
-		sym* head = statem->varDecl;
-		head->name = statem->word1;
+		sym* check = malloc(sizeof(sym));
+		memcpy((void*)check, (void*)statem->varDecl, sizeof(sym));
+		check->name = statem->word1;
 		arrType* thisType = statem->type;
-		while(head!=NULL){
-			if(head->term==NULL&&head->tree!=NULL)
-				head->term = solveAst(head->tree);
-			if(search(head->name)==NULL){	//Does not exist in sym table
-				if(head->term==NULL){	//Declared but not initialized
-					insert(thisType->type, head->name);
+		while(check!=NULL){
+			if(check->term==NULL&&check->tree!=NULL)
+				check->term = solveAst(check->tree);
+			if(search(check->name)==NULL){	//Does not exist in sym table
+				if(check->term==NULL){	//Declared but not initialized
+					insert(thisType->type, check->name);
 				} else{
-					if(head->term->type!=thisType->type){		//Different type
+					if(check->term->type!=thisType->type){		//Different type
 						if(thisType->deg>1){	//Is ARR, need to check type
 
 							//uhh let's skip the check for now
@@ -596,16 +589,16 @@ nonTerm* execStatement(statement* statem){
 							typeViolation(line);		
 						} 
 					}
-					insert(thisType->type, head->name);
-					if(head->term->arrType!=NULL)	//solves for var indexes
-						head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
+					insert(thisType->type, check->name);
+					if(check->term->arrType!=NULL)	//solves for var indexes
+						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
 					
-					search(head->name)->term = head->term;
+					search(check->name)->term = check->term;
 				}
 			} else {
 				typeViolation(line);		//Already declared
 			}
-			head = head->next;
+			check = check->next;
 		}
 		break;
 	}
@@ -690,7 +683,7 @@ varType setType(char* type){
 
 
 int main(int argc, char** argv){
-	pushTable();	//pushes main class symbol table to stack
+	pushTable(NULL);	//pushes main class symbol table to stack
 	classes = malloc(sizeof(classList));	//init class list
 	classesTail = classes;
 	#ifdef YYDEBUG
@@ -1191,6 +1184,13 @@ LeftValue:
 		$$ = $1;
 	}
 	| THIS DOT WORD			{
+		char* str = $3;
+		strArrY* this = malloc(sizeof(strArrY));
+		
+
+		this->class = malloc(sizeof(classLinkListY));
+		this->class->name = $3;	
+		$$ = this;
 	}
 	;
 
