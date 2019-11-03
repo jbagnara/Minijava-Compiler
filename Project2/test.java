@@ -2,7 +2,7 @@ class Factorial {
     public static void main(String[] a) {
 		int x = 5;
 		int y = x+1;
-		System.out.println(new Fac().ComputeFac(x, y));
+		System.out.println("b\\ig\tg\bus\nchung\"us");
     }
 }
 class Fac {

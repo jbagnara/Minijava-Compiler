@@ -1,5 +1,6 @@
 class Factorial {
     public static void main(String[] a) {
+	String a = "5";
         String b = "Hello! \t";
         String c = "This is a program   ";
 	String d = " \b that computes factorial of \t";
@@ -21,6 +22,7 @@ class Fac {
             num_aux = 1;
         else
             num_aux = num * (this.ComputeFac(num-1));
+	
         return num_aux;
     }
 }

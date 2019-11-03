@@ -51,7 +51,8 @@ typedef enum opType{
 	PLUSy		= 10,
 	MINUSy		= 11,
 	STARy		= 12,
-	SLASHy		= 13
+	SLASHy		= 13,
+	PARSEINTy	= 14
 } opType;
 
 typedef struct nonTerm {		//nonterminals, stores unformated symbol table entry
@@ -552,6 +553,15 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				free(val2);	
 				return mkNonTerm(STRING, res);
 				break;
+			case PARSEINTy:{
+				int* ret = malloc(sizeof(int));
+				*ret = atoi(val1);	
+				return mkNonTerm(INT, ret);
+				break;
+			}
+			default:
+				printf("invalid string operation %d\n", term1->type );
+				typeViolation(line);
 			}
 		}
 		case ARR:
@@ -705,7 +715,7 @@ int main(int argc, char** argv){
 }
 
 %}
-%token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER CLASS IF WHILE NOT TRUE FALSE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN LENGTH ELSE BRACKETS
+%token<num> AND OR LESS GREAT LESSEQ GREATEQ EQUAL NOTEQUAL PLUS MINUS STAR SLASH LBRACK RBRACK LBRACE RBRACE LPARENTH RPARENTH EXTENDS HEADER CLASS IF WHILE NOT TRUE FALSE PUBLIC COMMA EQUIVALENT SEMICOLON PRINT PRINTLN DOT NEW THIS RETURN LENGTH ELSE BRACKETS PARSEINT
 
 %code requires{
 
@@ -740,7 +750,8 @@ int main(int argc, char** argv){
 		PLUSY		= 10,
 		MINUSY		= 11,
 		STARY		= 12,
-		SLASHY		= 13
+		SLASHY		= 13,
+		PARSEINTY	= 14
 	} opTypeY;
 	
 	typedef struct nonTermY {
@@ -1285,6 +1296,9 @@ ExpOp:
 	| PLUS ExpOp {
 		$$ = $2;
 	}					
+	| PARSEINT LPARENTH Exp RPARENTH {
+		$$ = (astY*)mkNode((ast*)$3, (ast*)$3, PARSEINTY);
+	}
 	;
 
 ExpP2: 

@@ -3,10 +3,11 @@
 *******************************/
 
 class Factorial {
-    public static void main(String[] a) {
+    public static void main(String[] args) {
         String b = "Hello! This is Program Factorial";
 	System.out.println(b);
-	int number = Integer.parseInt(a[0]);			
+	String a = "20";
+	//int number = Integer.parseInt(a[0]);			
 	
 	System.out.print("Factorial(");
 	System.out.print(number);

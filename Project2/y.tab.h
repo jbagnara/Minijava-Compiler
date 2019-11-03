@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 710 "parser.y"
+#line 720 "parser.y"
 
 
 	struct astListY;
@@ -78,7 +78,8 @@ extern int yydebug;
 		PLUSY		= 10,
 		MINUSY		= 11,
 		STARY		= 12,
-		SLASHY		= 13
+		SLASHY		= 13,
+		PARSEINTY	= 14
 	} opTypeY;
 	
 	typedef struct nonTermY {
@@ -195,7 +196,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 199 "y.tab.h"
+#line 200 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -241,10 +242,11 @@ extern int yydebug;
     LENGTH = 294,
     ELSE = 295,
     BRACKETS = 296,
-    WORD = 297,
-    STRING_LITERAL = 298,
-    PRIMETYPE = 299,
-    INTEGER_LITERAL = 300
+    PARSEINT = 297,
+    WORD = 298,
+    STRING_LITERAL = 299,
+    PRIMETYPE = 300,
+    INTEGER_LITERAL = 301
   };
 #endif
 /* Tokens.  */
@@ -287,16 +289,17 @@ extern int yydebug;
 #define LENGTH 294
 #define ELSE 295
 #define BRACKETS 296
-#define WORD 297
-#define STRING_LITERAL 298
-#define PRIMETYPE 299
-#define INTEGER_LITERAL 300
+#define PARSEINT 297
+#define WORD 298
+#define STRING_LITERAL 299
+#define PRIMETYPE 300
+#define INTEGER_LITERAL 301
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 861 "parser.y"
+#line 872 "parser.y"
 
 	int num;
 	astListY* numList;
@@ -312,7 +315,7 @@ union YYSTYPE
 	classEntryY* clEntry;
 	classListY* clList;
 
-#line 316 "y.tab.h"
+#line 319 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

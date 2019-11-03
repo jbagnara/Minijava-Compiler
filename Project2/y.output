@@ -97,50 +97,51 @@ Grammar
    67      | LeftValue DOT LENGTH
    68      | MINUS ExpOp
    69      | PLUS ExpOp
+   70      | PARSEINT LPARENTH Exp RPARENTH
 
-   70 ExpP2: ExpP2 STAR ExpOp
-   71      | ExpP2 SLASH ExpOp
-   72      | ExpOp
+   71 ExpP2: ExpP2 STAR ExpOp
+   72      | ExpP2 SLASH ExpOp
+   73      | ExpOp
 
-   73 ExpP: ExpP PLUS ExpP2
-   74     | ExpP MINUS ExpP2
-   75     | ExpP2
+   74 ExpP: ExpP PLUS ExpP2
+   75     | ExpP MINUS ExpP2
+   76     | ExpP2
 
-   76 Exp: Exp AND ExpP
-   77    | Exp OR ExpP
-   78    | Exp LESS ExpP
-   79    | Exp GREAT ExpP
-   80    | Exp LESSEQ ExpP
-   81    | Exp GREATEQ ExpP
-   82    | Exp EQUIVALENT ExpP
-   83    | Exp NOTEQUAL ExpP
-   84    | ExpP
+   77 Exp: Exp AND ExpP
+   78    | Exp OR ExpP
+   79    | Exp LESS ExpP
+   80    | Exp GREAT ExpP
+   81    | Exp LESSEQ ExpP
+   82    | Exp GREATEQ ExpP
+   83    | Exp EQUIVALENT ExpP
+   84    | Exp NOTEQUAL ExpP
+   85    | ExpP
 
-   85 id: WORD
+   86 id: WORD
 
 
 Terminals, with rules where they appear
 
     $end (0) 0
     error (256)
-    AND <num> (258) 76
-    OR <num> (259) 77
-    LESS <num> (260) 78
-    GREAT <num> (261) 79
-    LESSEQ <num> (262) 80
-    GREATEQ <num> (263) 81
+    AND <num> (258) 77
+    OR <num> (259) 78
+    LESS <num> (260) 79
+    GREAT <num> (261) 80
+    LESSEQ <num> (262) 81
+    GREATEQ <num> (263) 82
     EQUAL <num> (264) 18 37 38
-    NOTEQUAL <num> (265) 83
-    PLUS <num> (266) 69 73
-    MINUS <num> (267) 68 74
-    STAR <num> (268) 70
-    SLASH <num> (269) 71
+    NOTEQUAL <num> (265) 84
+    PLUS <num> (266) 69 74
+    MINUS <num> (267) 68 75
+    STAR <num> (268) 71
+    SLASH <num> (269) 72
     LBRACK <num> (270) 44 49 52 65
     RBRACK <num> (271) 54
     LBRACE <num> (272) 2 5 20 32
     RBRACE <num> (273) 2 5 20 32
-    LPARENTH <num> (274) 2 20 33 34 35 36 41 42 48 51 58
-    RPARENTH <num> (275) 2 20 33 34 35 36 41 42 48 51 58
+    LPARENTH <num> (274) 2 20 33 34 35 36 41 42 48 51 58 70
+    RPARENTH <num> (275) 2 20 33 34 35 36 41 42 48 51 58 70
     EXTENDS <num> (276) 8
     HEADER <num> (277) 2
     CLASS <num> (278) 2 5
@@ -151,7 +152,7 @@ Terminals, with rules where they appear
     FALSE <num> (283) 61
     PUBLIC <num> (284) 12
     COMMA <num> (285) 17 24 56
-    EQUIVALENT <num> (286) 82
+    EQUIVALENT <num> (286) 83
     SEMICOLON <num> (287) 15 35 36 37 38 39 40
     PRINT <num> (288) 36
     PRINTLN <num> (289) 35
@@ -162,108 +163,109 @@ Terminals, with rules where they appear
     LENGTH <num> (294) 67
     ELSE <num> (295) 33
     BRACKETS <num> (296) 2 27
-    WORD <str> (297) 5 11 12 17 23 24 31 43 45 46 47 48 85
-    STRING_LITERAL <str> (298) 59
-    PRIMETYPE <str> (299) 2 25
-    INTEGER_LITERAL <num> (300) 62
+    PARSEINT <num> (297) 70
+    WORD <str> (298) 5 11 12 17 23 24 31 43 45 46 47 48 86
+    STRING_LITERAL <str> (299) 59
+    PRIMETYPE <str> (300) 2 25
+    INTEGER_LITERAL <num> (301) 62
 
 
 Nonterminals, with rules where they appear
 
-    $accept (46)
+    $accept (47)
         on left: 0
-    Program <statem> (47)
+    Program <statem> (48)
         on left: 1
         on right: 0
-    MainClass <statem> (48)
+    MainClass <statem> (49)
         on left: 2
         on right: 1
-    ClassDeclList <clList> (49)
+    ClassDeclList <clList> (50)
         on left: 3 4
         on right: 1 3
-    ClassDecl <clEntry> (50)
+    ClassDecl <clEntry> (51)
         on left: 5
         on right: 3
-    ParentMaybe (51)
+    ParentMaybe (52)
         on left: 6 7
         on right: 5
-    Parent (52)
+    Parent (53)
         on left: 8
         on right: 6
-    VarMethodDeclList <varMethList> (53)
+    VarMethodDeclList <varMethList> (54)
         on left: 9 10
         on right: 5 9
-    VarOrMethod <varMethList> (54)
+    VarOrMethod <varMethList> (55)
         on left: 11 12
         on right: 9
-    VarMethodDecl <varMethList> (55)
+    VarMethodDecl <varMethList> (56)
         on left: 13 14
         on right: 11
-    VarDecl <termList> (56)
+    VarDecl <termList> (57)
         on left: 15
         on right: 13 31
-    VarInitList <termList> (57)
+    VarInitList <termList> (58)
         on left: 16 17
         on right: 15 17
-    VarInit <termList> (58)
+    VarInit <termList> (59)
         on left: 18 19
         on right: 16 17
-    MethodDecl <methList> (59)
+    MethodDecl <methList> (60)
         on left: 20
         on right: 12 14
-    FormalListMaybe <termList> (60)
+    FormalListMaybe <termList> (61)
         on left: 21 22
         on right: 20
-    FormalList <termList> (61)
+    FormalList <termList> (62)
         on left: 23 24
         on right: 21 24
-    Type <type> (62)
+    Type <type> (63)
         on left: 25 26
         on right: 11 12 23 24 31 65
-    BracketsList <num> (63)
+    BracketsList <num> (64)
         on left: 27 28
         on right: 25 26 27
-    StatementList <statem> (64)
+    StatementList <statem> (65)
         on left: 29 30
         on right: 2 20 29 32
-    Statement <statem> (65)
+    Statement <statem> (66)
         on left: 31 32 33 34 35 36 37 38 39 40
         on right: 29 33 34
-    MethodCall <strarr> (66)
+    MethodCall <strarr> (67)
         on left: 41 42
         on right: 40 63
-    LeftValue <strarr> (67)
+    LeftValue <strarr> (68)
         on left: 43 44 45 46 47
         on right: 37 41 42 44 45 66 67
-    NewFunc <strarr> (68)
+    NewFunc <strarr> (69)
         on left: 48
         on right: 46 51 64
-    LeftValue2 <strarr> (69)
+    LeftValue2 <strarr> (70)
         on left: 49 50 51
         on right: 38 49 50
-    IndexList <numList> (70)
+    IndexList <numList> (71)
         on left: 52 53
         on right: 52 65
-    Index <tree> (71)
+    Index <tree> (72)
         on left: 54
         on right: 44 49 52 53
-    ExpList <numList> (72)
+    ExpList <numList> (73)
         on left: 55 56
         on right: 41 56
-    ExpOp <tree> (73)
-        on left: 57 58 59 60 61 62 63 64 65 66 67 68 69
-        on right: 57 68 69 70 71 72
-    ExpP2 <tree> (74)
-        on left: 70 71 72
-        on right: 70 71 73 74 75
-    ExpP <tree> (75)
-        on left: 73 74 75
-        on right: 73 74 76 77 78 79 80 81 82 83 84
-    Exp <tree> (76)
-        on left: 76 77 78 79 80 81 82 83 84
-        on right: 18 33 34 35 36 37 38 39 54 55 56 58 76 77 78 79 80 81 82 83
-    id <term> (77)
-        on left: 85
+    ExpOp <tree> (74)
+        on left: 57 58 59 60 61 62 63 64 65 66 67 68 69 70
+        on right: 57 68 69 71 72 73
+    ExpP2 <tree> (75)
+        on left: 71 72 73
+        on right: 71 72 74 75 76
+    ExpP <tree> (76)
+        on left: 74 75 76
+        on right: 74 75 77 78 79 80 81 82 83 84 85
+    Exp <tree> (77)
+        on left: 77 78 79 80 81 82 83 84 85
+        on right: 18 33 34 35 36 37 38 39 54 55 56 58 70 77 78 79 80 81 82 83 84
+    id <term> (78)
+        on left: 86
         on right: 2 8 26 50 51
 
 
@@ -307,9 +309,9 @@ State 3
 
 State 4
 
-   85 id: WORD .
+   86 id: WORD .
 
-    $default  reduce using rule 85 (id)
+    $default  reduce using rule 86 (id)
 
 
 State 5
@@ -605,17 +607,18 @@ State 37
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 63
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 64
 
 
 State 38
@@ -627,9 +630,9 @@ State 38
 
     $default  reduce using rule 22 (FormalListMaybe)
 
-    FormalListMaybe  go to state 64
-    FormalList       go to state 65
-    Type             go to state 66
+    FormalListMaybe  go to state 65
+    FormalList       go to state 66
+    Type             go to state 67
     id               go to state 26
 
 
@@ -651,7 +654,7 @@ State 41
 
    15 VarDecl: VarInitList . SEMICOLON
 
-    SEMICOLON  shift, and go to state 67
+    SEMICOLON  shift, and go to state 68
 
 
 State 42
@@ -659,7 +662,7 @@ State 42
    16 VarInitList: VarInit .
    17            | VarInit . COMMA WORD VarInitList
 
-    COMMA  shift, and go to state 68
+    COMMA  shift, and go to state 69
 
     $default  reduce using rule 16 (VarInitList)
 
@@ -675,7 +678,7 @@ State 44
 
     2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH . LBRACE StatementList RBRACE RBRACE
 
-    LBRACE  shift, and go to state 69
+    LBRACE  shift, and go to state 70
 
 
 State 45
@@ -697,14 +700,15 @@ State 46
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 70
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 71
 
 
 State 47
@@ -719,14 +723,15 @@ State 47
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 71
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 72
 
 
 State 48
@@ -741,17 +746,18 @@ State 48
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 72
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 73
 
 
 State 49
@@ -766,14 +772,15 @@ State 49
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 73
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 74
 
 
 State 50
@@ -795,10 +802,10 @@ State 52
    48 NewFunc: NEW . WORD LPARENTH RPARENTH
    65 ExpOp: NEW . Type LBRACK IndexList
 
-    WORD       shift, and go to state 74
+    WORD       shift, and go to state 75
     PRIMETYPE  shift, and go to state 22
 
-    Type  go to state 75
+    Type  go to state 76
     id    go to state 26
 
 
@@ -806,38 +813,45 @@ State 53
 
    47 LeftValue: THIS . DOT WORD
 
-    DOT  shift, and go to state 76
+    DOT  shift, and go to state 77
 
 
 State 54
+
+   70 ExpOp: PARSEINT . LPARENTH Exp RPARENTH
+
+    LPARENTH  shift, and go to state 78
+
+
+State 55
 
    43 LeftValue: WORD .
 
     $default  reduce using rule 43 (LeftValue)
 
 
-State 55
+State 56
 
    59 ExpOp: STRING_LITERAL .
 
     $default  reduce using rule 59 (ExpOp)
 
 
-State 56
+State 57
 
    62 ExpOp: INTEGER_LITERAL .
 
     $default  reduce using rule 62 (ExpOp)
 
 
-State 57
+State 58
 
    63 ExpOp: MethodCall .
 
     $default  reduce using rule 63 (ExpOp)
 
 
-State 58
+State 59
 
    41 MethodCall: LeftValue . LPARENTH ExpList RPARENTH
    42           | LeftValue . LPARENTH RPARENTH
@@ -846,211 +860,237 @@ State 58
    66 ExpOp: LeftValue .
    67      | LeftValue . DOT LENGTH
 
-    LBRACK    shift, and go to state 77
-    LPARENTH  shift, and go to state 78
-    DOT       shift, and go to state 79
+    LBRACK    shift, and go to state 79
+    LPARENTH  shift, and go to state 80
+    DOT       shift, and go to state 81
 
     $default  reduce using rule 66 (ExpOp)
 
 
-State 59
+State 60
 
    46 LeftValue: NewFunc . DOT WORD
    64 ExpOp: NewFunc .
 
-    DOT  shift, and go to state 80
+    DOT  shift, and go to state 82
 
     $default  reduce using rule 64 (ExpOp)
 
 
-State 60
-
-   72 ExpP2: ExpOp .
-
-    $default  reduce using rule 72 (ExpP2)
-
-
 State 61
 
-   70 ExpP2: ExpP2 . STAR ExpOp
-   71      | ExpP2 . SLASH ExpOp
-   75 ExpP: ExpP2 .
+   73 ExpP2: ExpOp .
 
-    STAR   shift, and go to state 81
-    SLASH  shift, and go to state 82
-
-    $default  reduce using rule 75 (ExpP)
+    $default  reduce using rule 73 (ExpP2)
 
 
 State 62
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   84 Exp: ExpP .
+   71 ExpP2: ExpP2 . STAR ExpOp
+   72      | ExpP2 . SLASH ExpOp
+   76 ExpP: ExpP2 .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    STAR   shift, and go to state 83
+    SLASH  shift, and go to state 84
 
-    $default  reduce using rule 84 (Exp)
+    $default  reduce using rule 76 (ExpP)
 
 
 State 63
 
-   18 VarInit: EQUAL Exp .
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   85 Exp: ExpP .
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    EQUIVALENT  shift, and go to state 92
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 18 (VarInit)
+    $default  reduce using rule 85 (Exp)
 
 
 State 64
 
-   20 MethodDecl: LPARENTH FormalListMaybe . RPARENTH LBRACE StatementList RBRACE
+   18 VarInit: EQUAL Exp .
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    RPARENTH  shift, and go to state 93
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    EQUIVALENT  shift, and go to state 94
+
+    $default  reduce using rule 18 (VarInit)
 
 
 State 65
+
+   20 MethodDecl: LPARENTH FormalListMaybe . RPARENTH LBRACE StatementList RBRACE
+
+    RPARENTH  shift, and go to state 95
+
+
+State 66
 
    21 FormalListMaybe: FormalList .
 
     $default  reduce using rule 21 (FormalListMaybe)
 
 
-State 66
+State 67
 
    23 FormalList: Type . WORD
    24           | Type . WORD COMMA FormalList
 
-    WORD  shift, and go to state 94
+    WORD  shift, and go to state 96
 
 
-State 67
+State 68
 
    15 VarDecl: VarInitList SEMICOLON .
 
     $default  reduce using rule 15 (VarDecl)
 
 
-State 68
+State 69
 
    17 VarInitList: VarInit COMMA . WORD VarInitList
 
-    WORD  shift, and go to state 95
+    WORD  shift, and go to state 97
 
 
-State 69
+State 70
 
     2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE . StatementList RBRACE RBRACE
 
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
     THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
     PRIMETYPE  shift, and go to state 22
 
     $default  reduce using rule 30 (StatementList)
 
-    Type           go to state 105
-    StatementList  go to state 106
-    Statement      go to state 107
-    MethodCall     go to state 108
-    LeftValue      go to state 109
-    NewFunc        go to state 110
-    LeftValue2     go to state 111
+    Type           go to state 107
+    StatementList  go to state 108
+    Statement      go to state 109
+    MethodCall     go to state 110
+    LeftValue      go to state 111
+    NewFunc        go to state 112
+    LeftValue2     go to state 113
     id             go to state 26
 
 
-State 70
+State 71
 
    69 ExpOp: PLUS ExpOp .
 
     $default  reduce using rule 69 (ExpOp)
 
 
-State 71
+State 72
 
    68 ExpOp: MINUS ExpOp .
 
     $default  reduce using rule 68 (ExpOp)
 
 
-State 72
+State 73
 
    58 ExpOp: LPARENTH Exp . RPARENTH
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RPARENTH    shift, and go to state 112
-    EQUIVALENT  shift, and go to state 92
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 114
+    EQUIVALENT  shift, and go to state 94
 
 
-State 73
+State 74
 
    57 ExpOp: NOT ExpOp .
 
     $default  reduce using rule 57 (ExpOp)
 
 
-State 74
-
-   48 NewFunc: NEW WORD . LPARENTH RPARENTH
-   85 id: WORD .
-
-    LPARENTH  shift, and go to state 113
-
-    $default  reduce using rule 85 (id)
-
-
 State 75
 
-   65 ExpOp: NEW Type . LBRACK IndexList
+   48 NewFunc: NEW WORD . LPARENTH RPARENTH
+   86 id: WORD .
 
-    LBRACK  shift, and go to state 114
+    LPARENTH  shift, and go to state 115
+
+    $default  reduce using rule 86 (id)
 
 
 State 76
 
-   47 LeftValue: THIS DOT . WORD
+   65 ExpOp: NEW Type . LBRACK IndexList
 
-    WORD  shift, and go to state 115
+    LBRACK  shift, and go to state 116
 
 
 State 77
+
+   47 LeftValue: THIS DOT . WORD
+
+    WORD  shift, and go to state 117
+
+
+State 78
+
+   70 ExpOp: PARSEINT LPARENTH . Exp RPARENTH
+
+    PLUS             shift, and go to state 46
+    MINUS            shift, and go to state 47
+    LPARENTH         shift, and go to state 48
+    NOT              shift, and go to state 49
+    TRUE             shift, and go to state 50
+    FALSE            shift, and go to state 51
+    NEW              shift, and go to state 52
+    THIS             shift, and go to state 53
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
+
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 118
+
+
+State 79
 
    44 LeftValue: LeftValue LBRACK . Index
 
@@ -1062,21 +1102,22 @@ State 77
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    Index       go to state 116
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 117
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    Index       go to state 119
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 120
 
 
-State 78
+State 80
 
    41 MethodCall: LeftValue LPARENTH . ExpList RPARENTH
    42           | LeftValue LPARENTH . RPARENTH
@@ -1084,89 +1125,46 @@ State 78
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
     LPARENTH         shift, and go to state 48
-    RPARENTH         shift, and go to state 118
+    RPARENTH         shift, and go to state 121
     NOT              shift, and go to state 49
     TRUE             shift, and go to state 50
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpList     go to state 119
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 120
-
-
-State 79
-
-   45 LeftValue: LeftValue DOT . WORD
-   67 ExpOp: LeftValue DOT . LENGTH
-
-    LENGTH  shift, and go to state 121
-    WORD    shift, and go to state 122
-
-
-State 80
-
-   46 LeftValue: NewFunc DOT . WORD
-
-    WORD  shift, and go to state 123
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpList     go to state 122
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 123
 
 
 State 81
 
-   70 ExpP2: ExpP2 STAR . ExpOp
+   45 LeftValue: LeftValue DOT . WORD
+   67 ExpOp: LeftValue DOT . LENGTH
 
-    PLUS             shift, and go to state 46
-    MINUS            shift, and go to state 47
-    LPARENTH         shift, and go to state 48
-    NOT              shift, and go to state 49
-    TRUE             shift, and go to state 50
-    FALSE            shift, and go to state 51
-    NEW              shift, and go to state 52
-    THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
-
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 124
+    LENGTH  shift, and go to state 124
+    WORD    shift, and go to state 125
 
 
 State 82
 
-   71 ExpP2: ExpP2 SLASH . ExpOp
+   46 LeftValue: NewFunc DOT . WORD
 
-    PLUS             shift, and go to state 46
-    MINUS            shift, and go to state 47
-    LPARENTH         shift, and go to state 48
-    NOT              shift, and go to state 49
-    TRUE             shift, and go to state 50
-    FALSE            shift, and go to state 51
-    NEW              shift, and go to state 52
-    THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
-
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 125
+    WORD  shift, and go to state 126
 
 
 State 83
 
-   73 ExpP: ExpP PLUS . ExpP2
+   71 ExpP2: ExpP2 STAR . ExpOp
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1176,20 +1174,20 @@ State 83
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 126
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 127
 
 
 State 84
 
-   74 ExpP: ExpP MINUS . ExpP2
+   72 ExpP2: ExpP2 SLASH . ExpOp
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1199,20 +1197,20 @@ State 84
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 127
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 128
 
 
 State 85
 
-   76 Exp: Exp AND . ExpP
+   74 ExpP: ExpP PLUS . ExpP2
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1222,21 +1220,21 @@ State 85
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 128
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 129
 
 
 State 86
 
-   77 Exp: Exp OR . ExpP
+   75 ExpP: ExpP MINUS . ExpP2
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1246,21 +1244,21 @@ State 86
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 129
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 130
 
 
 State 87
 
-   78 Exp: Exp LESS . ExpP
+   77 Exp: Exp AND . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1270,21 +1268,22 @@ State 87
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 130
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 131
 
 
 State 88
 
-   79 Exp: Exp GREAT . ExpP
+   78 Exp: Exp OR . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1294,21 +1293,22 @@ State 88
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 131
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 132
 
 
 State 89
 
-   80 Exp: Exp LESSEQ . ExpP
+   79 Exp: Exp LESS . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1318,21 +1318,22 @@ State 89
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 132
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 133
 
 
 State 90
 
-   81 Exp: Exp GREATEQ . ExpP
+   80 Exp: Exp GREAT . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1342,21 +1343,22 @@ State 90
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 133
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 134
 
 
 State 91
 
-   83 Exp: Exp NOTEQUAL . ExpP
+   81 Exp: Exp LESSEQ . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1366,21 +1368,22 @@ State 91
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 134
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 135
 
 
 State 92
 
-   82 Exp: Exp EQUIVALENT . ExpP
+   82 Exp: Exp GREATEQ . ExpP
 
     PLUS             shift, and go to state 46
     MINUS            shift, and go to state 47
@@ -1390,36 +1393,87 @@ State 92
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 135
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 136
 
 
 State 93
 
-   20 MethodDecl: LPARENTH FormalListMaybe RPARENTH . LBRACE StatementList RBRACE
+   84 Exp: Exp NOTEQUAL . ExpP
 
-    LBRACE  shift, and go to state 136
+    PLUS             shift, and go to state 46
+    MINUS            shift, and go to state 47
+    LPARENTH         shift, and go to state 48
+    NOT              shift, and go to state 49
+    TRUE             shift, and go to state 50
+    FALSE            shift, and go to state 51
+    NEW              shift, and go to state 52
+    THIS             shift, and go to state 53
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
+
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 137
 
 
 State 94
 
+   83 Exp: Exp EQUIVALENT . ExpP
+
+    PLUS             shift, and go to state 46
+    MINUS            shift, and go to state 47
+    LPARENTH         shift, and go to state 48
+    NOT              shift, and go to state 49
+    TRUE             shift, and go to state 50
+    FALSE            shift, and go to state 51
+    NEW              shift, and go to state 52
+    THIS             shift, and go to state 53
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
+
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 138
+
+
+State 95
+
+   20 MethodDecl: LPARENTH FormalListMaybe RPARENTH . LBRACE StatementList RBRACE
+
+    LBRACE  shift, and go to state 139
+
+
+State 96
+
    23 FormalList: Type WORD .
    24           | Type WORD . COMMA FormalList
 
-    COMMA  shift, and go to state 137
+    COMMA  shift, and go to state 140
 
     $default  reduce using rule 23 (FormalList)
 
 
-State 95
+State 97
 
    17 VarInitList: VarInit COMMA WORD . VarInitList
 
@@ -1427,83 +1481,83 @@ State 95
 
     $default  reduce using rule 19 (VarInit)
 
-    VarInitList  go to state 138
+    VarInitList  go to state 141
     VarInit      go to state 42
-
-
-State 96
-
-   32 Statement: LBRACE . StatementList RBRACE
-
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
-    THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
-    PRIMETYPE  shift, and go to state 22
-
-    $default  reduce using rule 30 (StatementList)
-
-    Type           go to state 105
-    StatementList  go to state 139
-    Statement      go to state 107
-    MethodCall     go to state 108
-    LeftValue      go to state 109
-    NewFunc        go to state 110
-    LeftValue2     go to state 111
-    id             go to state 26
-
-
-State 97
-
-   51 LeftValue2: LPARENTH . NewFunc RPARENTH DOT id
-
-    NEW  shift, and go to state 102
-
-    NewFunc  go to state 140
 
 
 State 98
 
-   33 Statement: IF . LPARENTH Exp RPARENTH Statement ELSE Statement
+   32 Statement: LBRACE . StatementList RBRACE
 
-    LPARENTH  shift, and go to state 141
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
+    THIS       shift, and go to state 53
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
+    PRIMETYPE  shift, and go to state 22
+
+    $default  reduce using rule 30 (StatementList)
+
+    Type           go to state 107
+    StatementList  go to state 142
+    Statement      go to state 109
+    MethodCall     go to state 110
+    LeftValue      go to state 111
+    NewFunc        go to state 112
+    LeftValue2     go to state 113
+    id             go to state 26
 
 
 State 99
 
-   34 Statement: WHILE . LPARENTH Exp RPARENTH Statement
+   51 LeftValue2: LPARENTH . NewFunc RPARENTH DOT id
 
-    LPARENTH  shift, and go to state 142
+    NEW  shift, and go to state 104
+
+    NewFunc  go to state 143
 
 
 State 100
 
-   36 Statement: PRINT . LPARENTH Exp RPARENTH SEMICOLON
-
-    LPARENTH  shift, and go to state 143
-
-
-State 101
-
-   35 Statement: PRINTLN . LPARENTH Exp RPARENTH SEMICOLON
+   33 Statement: IF . LPARENTH Exp RPARENTH Statement ELSE Statement
 
     LPARENTH  shift, and go to state 144
 
 
+State 101
+
+   34 Statement: WHILE . LPARENTH Exp RPARENTH Statement
+
+    LPARENTH  shift, and go to state 145
+
+
 State 102
 
-   48 NewFunc: NEW . WORD LPARENTH RPARENTH
+   36 Statement: PRINT . LPARENTH Exp RPARENTH SEMICOLON
 
-    WORD  shift, and go to state 145
+    LPARENTH  shift, and go to state 146
 
 
 State 103
+
+   35 Statement: PRINTLN . LPARENTH Exp RPARENTH SEMICOLON
+
+    LPARENTH  shift, and go to state 147
+
+
+State 104
+
+   48 NewFunc: NEW . WORD LPARENTH RPARENTH
+
+    WORD  shift, and go to state 148
+
+
+State 105
 
    39 Statement: RETURN . Exp SEMICOLON
 
@@ -1515,79 +1569,80 @@ State 103
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 146
-
-
-State 104
-
-   43 LeftValue: WORD .
-   85 id: WORD .
-
-    BRACKETS  reduce using rule 85 (id)
-    WORD      reduce using rule 85 (id)
-    $default  reduce using rule 43 (LeftValue)
-
-
-State 105
-
-   31 Statement: Type . WORD VarDecl
-
-    WORD  shift, and go to state 147
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 149
 
 
 State 106
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList . RBRACE RBRACE
+   43 LeftValue: WORD .
+   86 id: WORD .
 
-    RBRACE  shift, and go to state 148
+    BRACKETS  reduce using rule 86 (id)
+    WORD      reduce using rule 86 (id)
+    $default  reduce using rule 43 (LeftValue)
 
 
 State 107
 
-   29 StatementList: Statement . StatementList
+   31 Statement: Type . WORD VarDecl
 
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
-    THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
-    PRIMETYPE  shift, and go to state 22
-
-    $default  reduce using rule 30 (StatementList)
-
-    Type           go to state 105
-    StatementList  go to state 149
-    Statement      go to state 107
-    MethodCall     go to state 108
-    LeftValue      go to state 109
-    NewFunc        go to state 110
-    LeftValue2     go to state 111
-    id             go to state 26
+    WORD  shift, and go to state 150
 
 
 State 108
 
-   40 Statement: MethodCall . SEMICOLON
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList . RBRACE RBRACE
 
-    SEMICOLON  shift, and go to state 150
+    RBRACE  shift, and go to state 151
 
 
 State 109
+
+   29 StatementList: Statement . StatementList
+
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
+    THIS       shift, and go to state 53
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
+    PRIMETYPE  shift, and go to state 22
+
+    $default  reduce using rule 30 (StatementList)
+
+    Type           go to state 107
+    StatementList  go to state 152
+    Statement      go to state 109
+    MethodCall     go to state 110
+    LeftValue      go to state 111
+    NewFunc        go to state 112
+    LeftValue2     go to state 113
+    id             go to state 26
+
+
+State 110
+
+   40 Statement: MethodCall . SEMICOLON
+
+    SEMICOLON  shift, and go to state 153
+
+
+State 111
 
    37 Statement: LeftValue . EQUAL Exp SEMICOLON
    41 MethodCall: LeftValue . LPARENTH ExpList RPARENTH
@@ -1595,45 +1650,45 @@ State 109
    44 LeftValue: LeftValue . LBRACK Index
    45          | LeftValue . DOT WORD
 
-    EQUAL     shift, and go to state 151
-    LBRACK    shift, and go to state 77
-    LPARENTH  shift, and go to state 78
-    DOT       shift, and go to state 152
+    EQUAL     shift, and go to state 154
+    LBRACK    shift, and go to state 79
+    LPARENTH  shift, and go to state 80
+    DOT       shift, and go to state 155
 
 
-State 110
+State 112
 
    46 LeftValue: NewFunc . DOT WORD
 
-    DOT  shift, and go to state 80
+    DOT  shift, and go to state 82
 
 
-State 111
+State 113
 
    38 Statement: LeftValue2 . EQUAL Exp SEMICOLON
    49 LeftValue2: LeftValue2 . LBRACK Index
    50           | LeftValue2 . DOT id
 
-    EQUAL   shift, and go to state 153
-    LBRACK  shift, and go to state 154
-    DOT     shift, and go to state 155
+    EQUAL   shift, and go to state 156
+    LBRACK  shift, and go to state 157
+    DOT     shift, and go to state 158
 
 
-State 112
+State 114
 
    58 ExpOp: LPARENTH Exp RPARENTH .
 
     $default  reduce using rule 58 (ExpOp)
 
 
-State 113
+State 115
 
    48 NewFunc: NEW WORD LPARENTH . RPARENTH
 
-    RPARENTH  shift, and go to state 156
+    RPARENTH  shift, and go to state 159
 
 
-State 114
+State 116
 
    65 ExpOp: NEW Type LBRACK . IndexList
 
@@ -1645,315 +1700,339 @@ State 114
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    IndexList   go to state 157
-    Index       go to state 158
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 117
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    IndexList   go to state 160
+    Index       go to state 161
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 120
 
 
-State 115
+State 117
 
    47 LeftValue: THIS DOT WORD .
 
     $default  reduce using rule 47 (LeftValue)
 
 
-State 116
+State 118
+
+   70 ExpOp: PARSEINT LPARENTH Exp . RPARENTH
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
+
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 162
+    EQUIVALENT  shift, and go to state 94
+
+
+State 119
 
    44 LeftValue: LeftValue LBRACK Index .
 
     $default  reduce using rule 44 (LeftValue)
 
 
-State 117
+State 120
 
    54 Index: Exp . RBRACK
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RBRACK      shift, and go to state 159
-    EQUIVALENT  shift, and go to state 92
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RBRACK      shift, and go to state 163
+    EQUIVALENT  shift, and go to state 94
 
 
-State 118
+State 121
 
    42 MethodCall: LeftValue LPARENTH RPARENTH .
 
     $default  reduce using rule 42 (MethodCall)
 
 
-State 119
+State 122
 
    41 MethodCall: LeftValue LPARENTH ExpList . RPARENTH
 
-    RPARENTH  shift, and go to state 160
+    RPARENTH  shift, and go to state 164
 
 
-State 120
+State 123
 
    55 ExpList: Exp .
    56        | Exp . COMMA ExpList
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    COMMA       shift, and go to state 161
-    EQUIVALENT  shift, and go to state 92
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    COMMA       shift, and go to state 165
+    EQUIVALENT  shift, and go to state 94
 
     $default  reduce using rule 55 (ExpList)
 
 
-State 121
+State 124
 
    67 ExpOp: LeftValue DOT LENGTH .
 
     $default  reduce using rule 67 (ExpOp)
 
 
-State 122
+State 125
 
    45 LeftValue: LeftValue DOT WORD .
 
     $default  reduce using rule 45 (LeftValue)
 
 
-State 123
+State 126
 
    46 LeftValue: NewFunc DOT WORD .
 
     $default  reduce using rule 46 (LeftValue)
 
 
-State 124
+State 127
 
-   70 ExpP2: ExpP2 STAR ExpOp .
-
-    $default  reduce using rule 70 (ExpP2)
-
-
-State 125
-
-   71 ExpP2: ExpP2 SLASH ExpOp .
+   71 ExpP2: ExpP2 STAR ExpOp .
 
     $default  reduce using rule 71 (ExpP2)
 
 
-State 126
-
-   70 ExpP2: ExpP2 . STAR ExpOp
-   71      | ExpP2 . SLASH ExpOp
-   73 ExpP: ExpP PLUS ExpP2 .
-
-    STAR   shift, and go to state 81
-    SLASH  shift, and go to state 82
-
-    $default  reduce using rule 73 (ExpP)
-
-
-State 127
-
-   70 ExpP2: ExpP2 . STAR ExpOp
-   71      | ExpP2 . SLASH ExpOp
-   74 ExpP: ExpP MINUS ExpP2 .
-
-    STAR   shift, and go to state 81
-    SLASH  shift, and go to state 82
-
-    $default  reduce using rule 74 (ExpP)
-
-
 State 128
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   76 Exp: Exp AND ExpP .
+   72 ExpP2: ExpP2 SLASH ExpOp .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
-
-    $default  reduce using rule 76 (Exp)
+    $default  reduce using rule 72 (ExpP2)
 
 
 State 129
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   77 Exp: Exp OR ExpP .
+   71 ExpP2: ExpP2 . STAR ExpOp
+   72      | ExpP2 . SLASH ExpOp
+   74 ExpP: ExpP PLUS ExpP2 .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    STAR   shift, and go to state 83
+    SLASH  shift, and go to state 84
 
-    $default  reduce using rule 77 (Exp)
+    $default  reduce using rule 74 (ExpP)
 
 
 State 130
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   78 Exp: Exp LESS ExpP .
+   71 ExpP2: ExpP2 . STAR ExpOp
+   72      | ExpP2 . SLASH ExpOp
+   75 ExpP: ExpP MINUS ExpP2 .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    STAR   shift, and go to state 83
+    SLASH  shift, and go to state 84
 
-    $default  reduce using rule 78 (Exp)
+    $default  reduce using rule 75 (ExpP)
 
 
 State 131
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   79 Exp: Exp GREAT ExpP .
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   77 Exp: Exp AND ExpP .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 79 (Exp)
+    $default  reduce using rule 77 (Exp)
 
 
 State 132
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   80 Exp: Exp LESSEQ ExpP .
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   78 Exp: Exp OR ExpP .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 80 (Exp)
+    $default  reduce using rule 78 (Exp)
 
 
 State 133
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   81 Exp: Exp GREATEQ ExpP .
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   79 Exp: Exp LESS ExpP .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 81 (Exp)
+    $default  reduce using rule 79 (Exp)
 
 
 State 134
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   83 Exp: Exp NOTEQUAL ExpP .
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   80 Exp: Exp GREAT ExpP .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 83 (Exp)
+    $default  reduce using rule 80 (Exp)
 
 
 State 135
 
-   73 ExpP: ExpP . PLUS ExpP2
-   74     | ExpP . MINUS ExpP2
-   82 Exp: Exp EQUIVALENT ExpP .
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   81 Exp: Exp LESSEQ ExpP .
 
-    PLUS   shift, and go to state 83
-    MINUS  shift, and go to state 84
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
 
-    $default  reduce using rule 82 (Exp)
+    $default  reduce using rule 81 (Exp)
 
 
 State 136
 
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   82 Exp: Exp GREATEQ ExpP .
+
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
+
+    $default  reduce using rule 82 (Exp)
+
+
+State 137
+
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   84 Exp: Exp NOTEQUAL ExpP .
+
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
+
+    $default  reduce using rule 84 (Exp)
+
+
+State 138
+
+   74 ExpP: ExpP . PLUS ExpP2
+   75     | ExpP . MINUS ExpP2
+   83 Exp: Exp EQUIVALENT ExpP .
+
+    PLUS   shift, and go to state 85
+    MINUS  shift, and go to state 86
+
+    $default  reduce using rule 83 (Exp)
+
+
+State 139
+
    20 MethodDecl: LPARENTH FormalListMaybe RPARENTH LBRACE . StatementList RBRACE
 
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
     THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
     PRIMETYPE  shift, and go to state 22
 
     $default  reduce using rule 30 (StatementList)
 
-    Type           go to state 105
-    StatementList  go to state 162
-    Statement      go to state 107
-    MethodCall     go to state 108
-    LeftValue      go to state 109
-    NewFunc        go to state 110
-    LeftValue2     go to state 111
+    Type           go to state 107
+    StatementList  go to state 166
+    Statement      go to state 109
+    MethodCall     go to state 110
+    LeftValue      go to state 111
+    NewFunc        go to state 112
+    LeftValue2     go to state 113
     id             go to state 26
 
 
-State 137
+State 140
 
    24 FormalList: Type WORD COMMA . FormalList
 
     WORD       shift, and go to state 4
     PRIMETYPE  shift, and go to state 22
 
-    FormalList  go to state 163
-    Type        go to state 66
+    FormalList  go to state 167
+    Type        go to state 67
     id          go to state 26
 
 
-State 138
+State 141
 
    17 VarInitList: VarInit COMMA WORD VarInitList .
 
     $default  reduce using rule 17 (VarInitList)
 
 
-State 139
+State 142
 
    32 Statement: LBRACE StatementList . RBRACE
 
-    RBRACE  shift, and go to state 164
+    RBRACE  shift, and go to state 168
 
 
-State 140
+State 143
 
    51 LeftValue2: LPARENTH NewFunc . RPARENTH DOT id
 
-    RPARENTH  shift, and go to state 165
+    RPARENTH  shift, and go to state 169
 
 
-State 141
+State 144
 
    33 Statement: IF LPARENTH . Exp RPARENTH Statement ELSE Statement
 
@@ -1965,20 +2044,21 @@ State 141
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 166
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 170
 
 
-State 142
+State 145
 
    34 Statement: WHILE LPARENTH . Exp RPARENTH Statement
 
@@ -1990,20 +2070,21 @@ State 142
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 167
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 171
 
 
-State 143
+State 146
 
    36 Statement: PRINT LPARENTH . Exp RPARENTH SEMICOLON
 
@@ -2015,20 +2096,21 @@ State 143
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 168
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 172
 
 
-State 144
+State 147
 
    35 Statement: PRINTLN LPARENTH . Exp RPARENTH SEMICOLON
 
@@ -2040,50 +2122,51 @@ State 144
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 169
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 173
 
 
-State 145
+State 148
 
    48 NewFunc: NEW WORD . LPARENTH RPARENTH
 
-    LPARENTH  shift, and go to state 113
+    LPARENTH  shift, and go to state 115
 
 
-State 146
+State 149
 
    39 Statement: RETURN Exp . SEMICOLON
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    EQUIVALENT  shift, and go to state 92
-    SEMICOLON   shift, and go to state 170
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    EQUIVALENT  shift, and go to state 94
+    SEMICOLON   shift, and go to state 174
 
 
-State 147
+State 150
 
    31 Statement: Type WORD . VarDecl
 
@@ -2091,33 +2174,33 @@ State 147
 
     $default  reduce using rule 19 (VarInit)
 
-    VarDecl      go to state 171
+    VarDecl      go to state 175
     VarInitList  go to state 41
     VarInit      go to state 42
 
 
-State 148
+State 151
 
     2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE . RBRACE
 
-    RBRACE  shift, and go to state 172
+    RBRACE  shift, and go to state 176
 
 
-State 149
+State 152
 
    29 StatementList: Statement StatementList .
 
     $default  reduce using rule 29 (StatementList)
 
 
-State 150
+State 153
 
    40 Statement: MethodCall SEMICOLON .
 
     $default  reduce using rule 40 (Statement)
 
 
-State 151
+State 154
 
    37 Statement: LeftValue EQUAL . Exp SEMICOLON
 
@@ -2129,27 +2212,28 @@ State 151
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 173
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 177
 
 
-State 152
+State 155
 
    45 LeftValue: LeftValue DOT . WORD
 
-    WORD  shift, and go to state 122
+    WORD  shift, and go to state 125
 
 
-State 153
+State 156
 
    38 Statement: LeftValue2 EQUAL . Exp SEMICOLON
 
@@ -2161,20 +2245,21 @@ State 153
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 174
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 178
 
 
-State 154
+State 157
 
    49 LeftValue2: LeftValue2 LBRACK . Index
 
@@ -2186,68 +2271,76 @@ State 154
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    Index       go to state 175
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 117
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    Index       go to state 179
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 120
 
 
-State 155
+State 158
 
    50 LeftValue2: LeftValue2 DOT . id
 
     WORD  shift, and go to state 4
 
-    id  go to state 176
+    id  go to state 180
 
 
-State 156
+State 159
 
    48 NewFunc: NEW WORD LPARENTH RPARENTH .
 
     $default  reduce using rule 48 (NewFunc)
 
 
-State 157
+State 160
 
    65 ExpOp: NEW Type LBRACK IndexList .
 
     $default  reduce using rule 65 (ExpOp)
 
 
-State 158
+State 161
 
    52 IndexList: Index . LBRACK IndexList
    53          | Index .
 
-    LBRACK  shift, and go to state 177
+    LBRACK  shift, and go to state 181
 
     $default  reduce using rule 53 (IndexList)
 
 
-State 159
+State 162
+
+   70 ExpOp: PARSEINT LPARENTH Exp RPARENTH .
+
+    $default  reduce using rule 70 (ExpOp)
+
+
+State 163
 
    54 Index: Exp RBRACK .
 
     $default  reduce using rule 54 (Index)
 
 
-State 160
+State 164
 
    41 MethodCall: LeftValue LPARENTH ExpList RPARENTH .
 
     $default  reduce using rule 41 (MethodCall)
 
 
-State 161
+State 165
 
    56 ExpList: Exp COMMA . ExpList
 
@@ -2259,222 +2352,223 @@ State 161
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    ExpList     go to state 178
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 120
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    ExpList     go to state 182
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 123
 
 
-State 162
+State 166
 
    20 MethodDecl: LPARENTH FormalListMaybe RPARENTH LBRACE StatementList . RBRACE
 
-    RBRACE  shift, and go to state 179
+    RBRACE  shift, and go to state 183
 
 
-State 163
+State 167
 
    24 FormalList: Type WORD COMMA FormalList .
 
     $default  reduce using rule 24 (FormalList)
 
 
-State 164
+State 168
 
    32 Statement: LBRACE StatementList RBRACE .
 
     $default  reduce using rule 32 (Statement)
 
 
-State 165
+State 169
 
    51 LeftValue2: LPARENTH NewFunc RPARENTH . DOT id
 
-    DOT  shift, and go to state 180
-
-
-State 166
-
-   33 Statement: IF LPARENTH Exp . RPARENTH Statement ELSE Statement
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
-
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RPARENTH    shift, and go to state 181
-    EQUIVALENT  shift, and go to state 92
-
-
-State 167
-
-   34 Statement: WHILE LPARENTH Exp . RPARENTH Statement
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
-
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RPARENTH    shift, and go to state 182
-    EQUIVALENT  shift, and go to state 92
-
-
-State 168
-
-   36 Statement: PRINT LPARENTH Exp . RPARENTH SEMICOLON
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
-
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RPARENTH    shift, and go to state 183
-    EQUIVALENT  shift, and go to state 92
-
-
-State 169
-
-   35 Statement: PRINTLN LPARENTH Exp . RPARENTH SEMICOLON
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
-
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    RPARENTH    shift, and go to state 184
-    EQUIVALENT  shift, and go to state 92
+    DOT  shift, and go to state 184
 
 
 State 170
+
+   33 Statement: IF LPARENTH Exp . RPARENTH Statement ELSE Statement
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
+
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 185
+    EQUIVALENT  shift, and go to state 94
+
+
+State 171
+
+   34 Statement: WHILE LPARENTH Exp . RPARENTH Statement
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
+
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 186
+    EQUIVALENT  shift, and go to state 94
+
+
+State 172
+
+   36 Statement: PRINT LPARENTH Exp . RPARENTH SEMICOLON
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
+
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 187
+    EQUIVALENT  shift, and go to state 94
+
+
+State 173
+
+   35 Statement: PRINTLN LPARENTH Exp . RPARENTH SEMICOLON
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
+
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    RPARENTH    shift, and go to state 188
+    EQUIVALENT  shift, and go to state 94
+
+
+State 174
 
    39 Statement: RETURN Exp SEMICOLON .
 
     $default  reduce using rule 39 (Statement)
 
 
-State 171
+State 175
 
    31 Statement: Type WORD VarDecl .
 
     $default  reduce using rule 31 (Statement)
 
 
-State 172
+State 176
 
     2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE .
 
     $default  reduce using rule 2 (MainClass)
 
 
-State 173
+State 177
 
    37 Statement: LeftValue EQUAL Exp . SEMICOLON
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    EQUIVALENT  shift, and go to state 92
-    SEMICOLON   shift, and go to state 185
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    EQUIVALENT  shift, and go to state 94
+    SEMICOLON   shift, and go to state 189
 
 
-State 174
+State 178
 
    38 Statement: LeftValue2 EQUAL Exp . SEMICOLON
-   76 Exp: Exp . AND ExpP
-   77    | Exp . OR ExpP
-   78    | Exp . LESS ExpP
-   79    | Exp . GREAT ExpP
-   80    | Exp . LESSEQ ExpP
-   81    | Exp . GREATEQ ExpP
-   82    | Exp . EQUIVALENT ExpP
-   83    | Exp . NOTEQUAL ExpP
+   77 Exp: Exp . AND ExpP
+   78    | Exp . OR ExpP
+   79    | Exp . LESS ExpP
+   80    | Exp . GREAT ExpP
+   81    | Exp . LESSEQ ExpP
+   82    | Exp . GREATEQ ExpP
+   83    | Exp . EQUIVALENT ExpP
+   84    | Exp . NOTEQUAL ExpP
 
-    AND         shift, and go to state 85
-    OR          shift, and go to state 86
-    LESS        shift, and go to state 87
-    GREAT       shift, and go to state 88
-    LESSEQ      shift, and go to state 89
-    GREATEQ     shift, and go to state 90
-    NOTEQUAL    shift, and go to state 91
-    EQUIVALENT  shift, and go to state 92
-    SEMICOLON   shift, and go to state 186
+    AND         shift, and go to state 87
+    OR          shift, and go to state 88
+    LESS        shift, and go to state 89
+    GREAT       shift, and go to state 90
+    LESSEQ      shift, and go to state 91
+    GREATEQ     shift, and go to state 92
+    NOTEQUAL    shift, and go to state 93
+    EQUIVALENT  shift, and go to state 94
+    SEMICOLON   shift, and go to state 190
 
 
-State 175
+State 179
 
    49 LeftValue2: LeftValue2 LBRACK Index .
 
     $default  reduce using rule 49 (LeftValue2)
 
 
-State 176
+State 180
 
    50 LeftValue2: LeftValue2 DOT id .
 
     $default  reduce using rule 50 (LeftValue2)
 
 
-State 177
+State 181
 
    52 IndexList: Index LBRACK . IndexList
 
@@ -2486,190 +2580,191 @@ State 177
     FALSE            shift, and go to state 51
     NEW              shift, and go to state 52
     THIS             shift, and go to state 53
-    WORD             shift, and go to state 54
-    STRING_LITERAL   shift, and go to state 55
-    INTEGER_LITERAL  shift, and go to state 56
+    PARSEINT         shift, and go to state 54
+    WORD             shift, and go to state 55
+    STRING_LITERAL   shift, and go to state 56
+    INTEGER_LITERAL  shift, and go to state 57
 
-    MethodCall  go to state 57
-    LeftValue   go to state 58
-    NewFunc     go to state 59
-    IndexList   go to state 187
-    Index       go to state 158
-    ExpOp       go to state 60
-    ExpP2       go to state 61
-    ExpP        go to state 62
-    Exp         go to state 117
+    MethodCall  go to state 58
+    LeftValue   go to state 59
+    NewFunc     go to state 60
+    IndexList   go to state 191
+    Index       go to state 161
+    ExpOp       go to state 61
+    ExpP2       go to state 62
+    ExpP        go to state 63
+    Exp         go to state 120
 
 
-State 178
+State 182
 
    56 ExpList: Exp COMMA ExpList .
 
     $default  reduce using rule 56 (ExpList)
 
 
-State 179
+State 183
 
    20 MethodDecl: LPARENTH FormalListMaybe RPARENTH LBRACE StatementList RBRACE .
 
     $default  reduce using rule 20 (MethodDecl)
 
 
-State 180
+State 184
 
    51 LeftValue2: LPARENTH NewFunc RPARENTH DOT . id
 
     WORD  shift, and go to state 4
 
-    id  go to state 188
-
-
-State 181
-
-   33 Statement: IF LPARENTH Exp RPARENTH . Statement ELSE Statement
-
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
-    THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
-    PRIMETYPE  shift, and go to state 22
-
-    Type        go to state 105
-    Statement   go to state 189
-    MethodCall  go to state 108
-    LeftValue   go to state 109
-    NewFunc     go to state 110
-    LeftValue2  go to state 111
-    id          go to state 26
-
-
-State 182
-
-   34 Statement: WHILE LPARENTH Exp RPARENTH . Statement
-
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
-    THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
-    PRIMETYPE  shift, and go to state 22
-
-    Type        go to state 105
-    Statement   go to state 190
-    MethodCall  go to state 108
-    LeftValue   go to state 109
-    NewFunc     go to state 110
-    LeftValue2  go to state 111
-    id          go to state 26
-
-
-State 183
-
-   36 Statement: PRINT LPARENTH Exp RPARENTH . SEMICOLON
-
-    SEMICOLON  shift, and go to state 191
-
-
-State 184
-
-   35 Statement: PRINTLN LPARENTH Exp RPARENTH . SEMICOLON
-
-    SEMICOLON  shift, and go to state 192
+    id  go to state 192
 
 
 State 185
+
+   33 Statement: IF LPARENTH Exp RPARENTH . Statement ELSE Statement
+
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
+    THIS       shift, and go to state 53
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
+    PRIMETYPE  shift, and go to state 22
+
+    Type        go to state 107
+    Statement   go to state 193
+    MethodCall  go to state 110
+    LeftValue   go to state 111
+    NewFunc     go to state 112
+    LeftValue2  go to state 113
+    id          go to state 26
+
+
+State 186
+
+   34 Statement: WHILE LPARENTH Exp RPARENTH . Statement
+
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
+    THIS       shift, and go to state 53
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
+    PRIMETYPE  shift, and go to state 22
+
+    Type        go to state 107
+    Statement   go to state 194
+    MethodCall  go to state 110
+    LeftValue   go to state 111
+    NewFunc     go to state 112
+    LeftValue2  go to state 113
+    id          go to state 26
+
+
+State 187
+
+   36 Statement: PRINT LPARENTH Exp RPARENTH . SEMICOLON
+
+    SEMICOLON  shift, and go to state 195
+
+
+State 188
+
+   35 Statement: PRINTLN LPARENTH Exp RPARENTH . SEMICOLON
+
+    SEMICOLON  shift, and go to state 196
+
+
+State 189
 
    37 Statement: LeftValue EQUAL Exp SEMICOLON .
 
     $default  reduce using rule 37 (Statement)
 
 
-State 186
+State 190
 
    38 Statement: LeftValue2 EQUAL Exp SEMICOLON .
 
     $default  reduce using rule 38 (Statement)
 
 
-State 187
+State 191
 
    52 IndexList: Index LBRACK IndexList .
 
     $default  reduce using rule 52 (IndexList)
 
 
-State 188
+State 192
 
    51 LeftValue2: LPARENTH NewFunc RPARENTH DOT id .
 
     $default  reduce using rule 51 (LeftValue2)
 
 
-State 189
+State 193
 
    33 Statement: IF LPARENTH Exp RPARENTH Statement . ELSE Statement
 
-    ELSE  shift, and go to state 193
+    ELSE  shift, and go to state 197
 
 
-State 190
+State 194
 
    34 Statement: WHILE LPARENTH Exp RPARENTH Statement .
 
     $default  reduce using rule 34 (Statement)
 
 
-State 191
+State 195
 
    36 Statement: PRINT LPARENTH Exp RPARENTH SEMICOLON .
 
     $default  reduce using rule 36 (Statement)
 
 
-State 192
+State 196
 
    35 Statement: PRINTLN LPARENTH Exp RPARENTH SEMICOLON .
 
     $default  reduce using rule 35 (Statement)
 
 
-State 193
+State 197
 
    33 Statement: IF LPARENTH Exp RPARENTH Statement ELSE . Statement
 
-    LBRACE     shift, and go to state 96
-    LPARENTH   shift, and go to state 97
-    IF         shift, and go to state 98
-    WHILE      shift, and go to state 99
-    PRINT      shift, and go to state 100
-    PRINTLN    shift, and go to state 101
-    NEW        shift, and go to state 102
+    LBRACE     shift, and go to state 98
+    LPARENTH   shift, and go to state 99
+    IF         shift, and go to state 100
+    WHILE      shift, and go to state 101
+    PRINT      shift, and go to state 102
+    PRINTLN    shift, and go to state 103
+    NEW        shift, and go to state 104
     THIS       shift, and go to state 53
-    RETURN     shift, and go to state 103
-    WORD       shift, and go to state 104
+    RETURN     shift, and go to state 105
+    WORD       shift, and go to state 106
     PRIMETYPE  shift, and go to state 22
 
-    Type        go to state 105
-    Statement   go to state 194
-    MethodCall  go to state 108
-    LeftValue   go to state 109
-    NewFunc     go to state 110
-    LeftValue2  go to state 111
+    Type        go to state 107
+    Statement   go to state 198
+    MethodCall  go to state 110
+    LeftValue   go to state 111
+    NewFunc     go to state 112
+    LeftValue2  go to state 113
     id          go to state 26
 
 
-State 194
+State 198
 
    33 Statement: IF LPARENTH Exp RPARENTH Statement ELSE Statement .
 
