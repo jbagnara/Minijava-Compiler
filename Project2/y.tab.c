@@ -84,11 +84,17 @@ struct nonTerm* solveAst(struct ast*);
 struct astList;
 struct strArr;
 struct statement;
+struct classEntry;
+struct sym;
 
+int checkBool = 1;
+int checking = 1;
+char* inpName;
 
 void typeViolation(int lineno){
+	checkBool = 0;
 	printf("Type Violation in Line %d\n", lineno);
-	exit(1);
+	//exit(1);
 }
 
 typedef enum varType{			//variable types
@@ -103,6 +109,7 @@ typedef enum varType{			//variable types
 
 typedef struct arrType{			//extension of varType for arrays
 	varType type;
+	char* class;
 	int deg;
 } arrType;
 
@@ -166,14 +173,6 @@ typedef struct classLinkList{
 	struct classLinkList* next;
 } classLinkList;
 
-typedef struct classRef {
-	char* name;
-	union sub{
-		struct statement* list;	//method of class
-		nonTerm* var;		//variable or subclass of class
-	} sub;
-} classRef;
-
 typedef struct strArr {			//stores array variable
 	char* str;
 	astList* num;
@@ -187,10 +186,14 @@ typedef struct symbol {			//entry to symbol table
 	ast* tree;
 } sym;
 
+typedef struct classRef {
+	char* name;
+	sym* table;		//symbol table stack
+} classRef;
+
 typedef struct symStack {		//symbol table stack for accessing classes
 	sym* table;
 	sym* tableTail;
-	struct symStack* next;
 	struct symStack* prev;
 } symStack;
 
@@ -212,6 +215,7 @@ typedef struct varMethodList {
 
 typedef struct classEntry {
 	char* name;
+	char* parent;
 	varMethodList* list;
 } classEntry;
 
@@ -244,6 +248,7 @@ typedef struct statement {		//Executable command list
 	sym* varDecl;
 	struct statement* next;
 	int lineno;
+	int formalListBool;
 } statement;
 
 
@@ -255,9 +260,14 @@ statement* temp;
 classList* classes;
 classList* classesTail;
 classEntry* currentClass;
+char** mainArgs;
 int line = 0;
 
 nonTerm* execStatement(statement*);
+classEntry* classSearch(char*);
+statement* declArgs(classEntry*);
+void pushTable(classEntry*);
+void popTable();
 
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
@@ -285,7 +295,8 @@ nonTerm* mkNonTerm(int type, void* val){
 			break;
 		case CLASSy:
 			term->value.class = malloc(sizeof(classRef));
-			term->value.class->name = (char*)val;
+			term->value.class->name = ((strArr*)val)->str;
+			
 		}
 	}
 	return term;
@@ -360,9 +371,9 @@ void pushTable(classEntry* class){			//pushes new symbol table
 	if(table==NULL){
 		table = thisTable;
 	} else{ 
+		table->tableTail = tail;
 		thisTable->prev = table;
-		table->next = thisTable;
-		table = table->next;
+		table = thisTable;
 	}
 	head = table->table;
 	tail = table->tableTail;
@@ -370,10 +381,11 @@ void pushTable(classEntry* class){			//pushes new symbol table
 
 void popTable(){
 	table = table->prev;			//there should always be parent table
-	head = table->table;
+	//memcpy(head, table->table, sizeof(sym));
+	//memcpy(tail, table->tableTail, sizeof(sym));
 	tail = table->tableTail;
-	
-	//need to free
+	head = table->table;
+	//need to free...	maybe someday
 }
 
 void insert(varType type, char* name){
@@ -414,8 +426,7 @@ classEntry* classSearch(char* name){
 	return NULL;	
 }
 
-methodList* methodSearch(char* className, char* methodName){
-	classEntry* class = classSearch(className);
+methodList* methodSearch(classEntry* class, char* methodName){
 	if(class==NULL)	//class not found
 		typeViolation(line);
 
@@ -424,6 +435,9 @@ methodList* methodSearch(char* className, char* methodName){
 		if(!strcmp(methodName, current->name))
 			return current;
 		current = current->next;
+	}
+	if(class->parent!=NULL&&classSearch(class->parent)!=NULL){
+			return methodSearch(classSearch(class->parent), methodName);	
 	}
 	return NULL;
 	
@@ -443,12 +457,16 @@ statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftV
 }
 
 statement* initArgs(sym* list, sym* input){			//do type checks! ***
+		
 	statement* current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, list);
+	current->formalListBool=1;
 	statement* stateHead = current;
 	sym* itr = list;
 	while(input!=NULL&&itr!=NULL){	
 		strArr* this = malloc(sizeof(strArr));
 		this->str = itr->name;
+		if(this->str==NULL||input->term==NULL)
+			return NULL;
 		current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
 		current = current->next;
 		input = input->next;
@@ -460,7 +478,60 @@ statement* initArgs(sym* list, sym* input){			//do type checks! ***
 	//statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
 }
 
+statement* declArgs(classEntry* class){
+	sym* list = class->list->table;
+	statement* current = NULL;
+	if(list!=NULL) {
+		sym* temp = malloc(sizeof(ast));
+		memcpy((void*)temp, (void*)list, sizeof(sym));
+		temp->term = malloc(sizeof(nonTerm));	
+		memcpy((void*)temp->term, (void*)list->term, sizeof(sym));
+		current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, temp);
+		temp->term->arrType=NULL;
+		current->formalListBool=1;
+	}
+
+	if(class->parent!=NULL&&classSearch(class->parent)!=NULL){
+		if(current == NULL)
+			current = declArgs(classSearch(class->parent));
+		else
+			current->next = declArgs(classSearch(class->parent));
+	}
+
+	return current;
+}
+
+void initInputArgs(char* name){
+	astList* deg = malloc(sizeof(astList));
+	int* hundert = malloc(sizeof(int));
+	*hundert = 100;
+	deg->num = mkLeaf(mkNonTerm(INT, hundert));
+	sym* inputArgs;
+	sym* inpHead;
+	char** itr = mainArgs;
+
+	insert(ARR, name);	
+	nonTerm* arr = mkNonTermArr(STRING, deg);
+	search(name)->term = arr;
+	
+	int x=0;
+	while(itr[x]!=NULL){
+		//inputArgs = malloc(sizeof(sym));
+		//inputArgs->tree = mkLeaf(mkNonTerm(STRING, itr));
+		//if(inpHead==NULL)
+		//	inpHead = inputArgs;
+		//inputArgs = inputArgs->next;
+		//memcpy((void*)searchNonTermArr(search(name)->term, x), mkNonTerm(STRING, itr), sizeof(nonTerm));
+		memcpy(search(name)->term->value.arr[x], mkNonTerm(STRING, itr[x]), sizeof(nonTerm));
+		x++;
+		itr++;
+	}
+
+}
+
 void printExp(nonTerm* term, int nline){
+	if(checking)	//don't you dare!
+		return;
 	switch(term->type){
 	case STRING:		//String
 		if(nline)
@@ -475,14 +546,26 @@ void printExp(nonTerm* term, int nline){
 			printf("%d", term->value.num);
 		break;
 	case BOOL:
-		if(nline)
-			printf("%d\n", term->value.num);
-		else	
-			printf("%d", term->value.num);
+		if(term->value.num){
+			if(nline)
+				printf("true\n");
+			else	
+				printf("true", term->value.num);
+		} else {
+			if(nline)
+				printf("false\n");
+			else	
+				printf("false", term->value.num);
+		}
 		break;
 	case ARR:
 		printf("uhh\n");
-		typeViolation(line);	
+		typeViolation(line);
+		break;
+	case CLASSy:
+		printf("ya");		
+	default:
+		typeViolation(line);
 	}
 }
 
@@ -491,9 +574,19 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		if (tree->isVar){	//var
 			if(tree->str->class!=NULL){		//class shenanigans
 				//gotta convert input to terms with solveAst!!
-				if(tree->str->str==NULL)
+				if(tree->str->str==NULL)		//THIS
 					tree->str->str = currentClass->name;
-				methodList* method = methodSearch(tree->str->str, tree->str->class->name);
+
+				classEntry* thisClass = classSearch(tree->str->str);
+				if(thisClass==NULL){
+					return NULL;
+				}
+
+				
+				methodList* method = methodSearch(thisClass, tree->str->class->name);
+				if(method==NULL){
+					return NULL;
+				}
 				statement* statementList = method->statementList;
 				astList* input = tree->str->class->exp;
 				sym* formInput = malloc(sizeof(sym));
@@ -505,19 +598,35 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 					input = input->next;
 				}	
 				statement* init = NULL;
-				if(method->arg!=NULL&&formhead!=NULL)
+				if(method->arg!=NULL&&formhead!=NULL){
 					init = initArgs(method->arg, formhead);	//input declarations
+					if(init==NULL){
+						return NULL;
+					}
+				}
+				statement* args = NULL;
+				args = declArgs(thisClass);
+				
 
 				pushTable(classSearch(tree->str->str));
 				if(statementList==NULL)
 					typeViolation(line);
 				if(init!=NULL)
 					execStatement(init);
+				if(args!=NULL)
+					execStatement(args);
 				nonTerm* ret = execStatement(statementList);
 				popTable();
+				if(ret==NULL){
+					return NULL;
+				}
 				return ret;
 			}
-
+		
+			if(search(tree->str->str)==NULL){
+				typeViolation(line);
+				return NULL;
+			}	
 			tree->node.leaf =  search(tree->str->str)->term;
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
@@ -527,7 +636,10 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	} else {
 		nonTerm* term1 = solveAst(tree->node1);
 		nonTerm* term2 = solveAst(tree->node2);
-		if(term1->type!=term2->type)
+		if(term1==NULL){
+			return NULL;
+		}
+		if(term2!=NULL&&term1->type!=term2->type)
 			typeViolation(line);
 	
 		switch(term1->type){
@@ -577,7 +689,6 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				return mkNonTerm(BOOL, &res);
 				break;
 			default:
-				printf("invalid int operation %d\n", term1->type );
 				typeViolation(line);
 			}
 		break;
@@ -613,13 +724,17 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			char* val1 = term1->value.str;
 			char* val2 = term2->value.str;
 			char* res;
+			if(val1==NULL){
+				typeViolation(line);
+				return NULL;
+			}
 			switch(tree->node.op){
 			case PLUSy:
 				res = malloc(sizeof(char)*1000);		//lol
 				strcpy(res, val1);
 				strcat(res, val2);
-				free(val1);
-				free(val2);	
+				//free(val1);
+				//free(val2);	
 				return mkNonTerm(STRING, res);
 				break;
 			case PARSEINTy:{
@@ -629,14 +744,15 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				break;
 			}
 			default:
-				printf("invalid string operation %d\n", term1->type );
 				typeViolation(line);
 			}
 		}
 		case ARR:
 			return mkNonTerm(ARR, tree->node.leaf);
+			break;
+		case CLASSy:
+			return mkNonTerm(CLASSy, tree->node.leaf);
 		default:
-			printf("type %d not implemented in ast\n", term1->type);
 			typeViolation(line);
 		}
 	}
@@ -651,6 +767,10 @@ nonTerm* execStatement(statement* statem){
 		memcpy((void*)check, (void*)statem->varDecl, sizeof(sym));
 		check->name = statem->word1;
 		arrType* thisType = statem->type;
+
+		if(thisType==NULL||check==NULL)
+			typeViolation(line);
+
 		while(check!=NULL){
 			if(check->term==NULL&&check->tree!=NULL)
 				check->term = solveAst(check->tree);
@@ -663,37 +783,71 @@ nonTerm* execStatement(statement* statem){
 
 							//uhh let's skip the check for now
 
-						} else {
-							printf("Incompatible types\n");
+						} else if(!statem->formalListBool) {
 							typeViolation(line);		
+						} else if(thisType->type==CLASSy){
+							printf("uh oh\n");
 						} 
 					}
-					insert(thisType->type, check->name);
+
+					if(thisType->type==CLASSy){
+						if(classSearch(check->term->value.class->name)==NULL||
+						  (strcmp(check->term->value.class->name, thisType->class))){
+							typeViolation(line);
+							return NULL;
+						}	
+						statement* init = declArgs(classSearch(check->term->value.class->name));
+						pushTable(NULL);			//creates empty symbol table
+						check->term->value.class->table = head;
+						execStatement(init);
+						popTable();
+					}
+					insert(check->term->type, check->name);
+
 					if(check->term->arrType!=NULL)	//solves for var indexes
 						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
-					
+					if(check->term==NULL){
+						typeViolation(line);
+						break;
+					}
 					search(check->name)->term = check->term;
 				}
 			} else {
 				typeViolation(line);		//Already declared
+				break;
 			}
 			check = check->next;
 		}
 		break;
 	}
 	case PRINTNLINE:{
-		printExp(solveAst(statem->exp), 1);
+		nonTerm* ret = solveAst(statem->exp);
+		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
+			typeViolation(line);
+			break;
+		}
+		printExp(ret, 1);
 		break;		
 	}
-	case PRINTN:
-		printExp(solveAst(statem->exp), 0);
+	case PRINTN:{
+		nonTerm* ret = solveAst(statem->exp);
+		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
+			typeViolation(line);
+			break;
+		}
+		printExp(ret, 0);
 		break;		
+	}
 	case INIT:{		
 		sym* head = search(statem->leftVal->str);
+		if(head==NULL){
+			typeViolation(line);
+			break;
+		}
 		if(head->term->arrType!=NULL)				//solves for var indexes
 			head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
 					
-
+		
 		memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));			//copies exp to the symbol table pointer
 
 		break;
@@ -774,6 +928,7 @@ int main(int argc, char** argv){
 		printf("invalid filename\n");
 		exit(1);
 	}
+	mainArgs = argv+2;
 	yyin = file;
 	yyparse();
 	//free(head->term);
@@ -784,7 +939,7 @@ int main(int argc, char** argv){
 }
 
 
-#line 788 "y.tab.c"
+#line 943 "y.tab.c"
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus
@@ -818,10 +973,12 @@ int main(int argc, char** argv){
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 720 "parser.y"
+#line 875 "parser.y"
 
 
 	struct astListY;
+	struct classEntryY;
+	struct symY;
 
 	typedef enum varTypeY{
 		UNDECY 		= -1,
@@ -835,6 +992,7 @@ extern int yydebug;
 
 	typedef struct arrTypeY{
 		varTypeY type;
+		char* class;
 		int deg;
 	} arrTypeY;
 
@@ -875,14 +1033,6 @@ extern int yydebug;
 		nonTermY** term;
 	} nonTermArrY;
 
-	typedef struct classRefY {
-		char* name;
-		union subY{
-			struct statementY* list;
-			nonTermY* var;
-		} sub;
-	} classRefY;
-
 	struct strArrY;
 
 	typedef struct astY {
@@ -921,6 +1071,11 @@ extern int yydebug;
 		astY* tree;
 	} symY;
 
+	typedef struct classRefY {
+		char* name;
+		symY* table;
+	} classRefY;
+
 
 	typedef struct methodListY {
 		char* name;
@@ -937,6 +1092,7 @@ extern int yydebug;
 
 	typedef struct classEntryY {
 		char* name;
+		char* parent;
 		varMethodListY* list;
 	} classEntryY;
 
@@ -970,7 +1126,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 974 "y.tab.c"
+#line 1130 "y.tab.c"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -1073,7 +1229,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 872 "parser.y"
+#line 1028 "parser.y"
 
 	int num;
 	astListY* numList;
@@ -1089,7 +1245,7 @@ union YYSTYPE
 	classEntryY* clEntry;
 	classListY* clList;
 
-#line 1093 "y.tab.c"
+#line 1249 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -1339,7 +1495,7 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  6
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   319
+#define YYLAST   302
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  47
@@ -1399,15 +1555,15 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   907,   907,   913,   919,   922,   926,   935,   936,   940,
-     944,   948,   952,   963,   973,   979,   987,   991,   997,  1005,
-    1012,  1019,  1028,  1031,  1037,  1046,  1058,  1063,  1066,  1067,
-    1071,  1076,  1082,  1086,  1089,  1096,  1103,  1107,  1111,  1117,
-    1121,  1125,  1130,  1143,  1149,  1158,  1174,  1191,  1197,  1209,
-    1217,  1218,  1219,  1223,  1228,  1234,  1240,  1245,  1254,  1260,
-    1261,  1264,  1267,  1270,  1273,  1278,  1280,  1285,  1290,  1291,
-    1296,  1299,  1305,  1306,  1307,  1311,  1312,  1313,  1317,  1318,
-    1319,  1320,  1321,  1322,  1323,  1324,  1325,  1329
+       0,  1064,  1064,  1076,  1084,  1087,  1091,  1101,  1104,  1110,
+    1116,  1129,  1135,  1152,  1162,  1168,  1176,  1180,  1186,  1194,
+    1201,  1208,  1217,  1220,  1226,  1235,  1247,  1252,  1259,  1260,
+    1264,  1269,  1275,  1279,  1282,  1289,  1296,  1300,  1304,  1310,
+    1314,  1318,  1323,  1336,  1342,  1351,  1367,  1383,  1389,  1401,
+    1409,  1425,  1441,  1451,  1456,  1462,  1468,  1473,  1482,  1488,
+    1489,  1492,  1495,  1498,  1501,  1506,  1509,  1513,  1518,  1519,
+    1524,  1527,  1533,  1534,  1535,  1539,  1540,  1541,  1545,  1546,
+    1547,  1548,  1549,  1550,  1551,  1552,  1553,  1557
 };
 #endif
 
@@ -1445,12 +1601,12 @@ static const yytype_uint16 yytoknum[] =
 };
 # endif
 
-#define YYPACT_NINF -168
+#define YYPACT_NINF -169
 
 #define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-168)))
+  (!!((Yystate) == (-169)))
 
-#define YYTABLE_NINF -88
+#define YYTABLE_NINF -30
 
 #define yytable_value_is_error(Yytable_value) \
   0
@@ -1459,26 +1615,26 @@ static const yytype_uint16 yytoknum[] =
      STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-     -19,   -20,    37,    17,  -168,    38,  -168,     7,  -168,    17,
-      41,    46,  -168,    51,   -20,    43,  -168,    47,  -168,    33,
-      49,    -2,  -168,    75,    33,    52,  -168,   -20,    53,    56,
-    -168,  -168,    12,    56,    74,    79,  -168,   119,    -2,  -168,
-    -168,    73,    77,  -168,    95,  -168,   119,   119,   119,   119,
-    -168,  -168,    16,    78,    97,  -168,  -168,  -168,  -168,    -8,
-      80,  -168,    19,    72,   288,    94,  -168,    76,  -168,    93,
-     115,  -168,  -168,   181,  -168,    98,   127,   100,   119,   119,
-      45,   -15,   101,   119,   119,   119,   119,   119,   119,   119,
-     119,   119,   119,   119,   119,   133,   124,   150,   115,   128,
-     153,   161,   173,   174,   139,   119,    25,   147,   178,   115,
-     165,    39,    80,    -6,  -168,   179,   119,  -168,   201,  -168,
-     210,  -168,   180,   230,  -168,  -168,  -168,  -168,  -168,    19,
-      19,    72,    72,    72,    72,    72,    72,    72,    72,   115,
-      -2,  -168,   192,   199,   119,   119,   119,   119,    98,    96,
-     150,   204,  -168,  -168,   119,   155,   119,   119,   -20,  -168,
-    -168,   208,  -168,  -168,  -168,   119,   206,  -168,  -168,   190,
-     239,   247,   269,   277,  -168,  -168,  -168,   163,   171,  -168,
-    -168,   119,  -168,  -168,   -20,   115,   115,   195,   196,  -168,
-    -168,  -168,  -168,   189,  -168,  -168,  -168,   115,  -168
+       5,    14,    10,    38,  -169,    72,  -169,    30,  -169,    38,
+      71,    81,  -169,    87,    83,   114,  -169,    88,  -169,    55,
+      94,     9,  -169,  -169,   120,    55,    98,    99,   100,   106,
+     106,  -169,  -169,    21,   128,   130,  -169,   118,     9,  -169,
+    -169,   119,   122,  -169,   133,  -169,   118,   118,   118,   118,
+    -169,  -169,    17,   121,   134,  -169,  -169,  -169,  -169,    34,
+     123,  -169,   -11,    93,   271,   137,  -169,   116,  -169,   136,
+      58,  -169,  -169,    16,  -169,   144,   156,   146,   118,   118,
+      44,   -12,   147,   118,   118,   118,   118,   118,   118,   118,
+     118,   118,   118,   118,   118,   174,   157,   183,    58,   159,
+     177,   180,   181,   192,   154,   118,    56,   169,   195,    58,
+     182,    23,   123,    50,  -169,   203,   118,  -169,   178,  -169,
+     200,  -169,   219,   214,  -169,  -169,  -169,  -169,  -169,   -11,
+     -11,    93,    93,    93,    93,    93,    93,    93,    93,    58,
+       9,  -169,   197,   221,   118,   118,   118,   118,   144,   108,
+     183,   225,  -169,  -169,   118,   204,   118,   118,   206,  -169,
+    -169,   231,  -169,  -169,  -169,   118,   233,  -169,  -169,   213,
+     222,   230,   252,   260,  -169,  -169,  -169,   162,   170,  -169,
+    -169,   118,  -169,  -169,   209,    58,    58,   237,   239,  -169,
+    -169,  -169,  -169,   242,  -169,  -169,  -169,    58,  -169
 };
 
   /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -1488,12 +1644,12 @@ static const yytype_uint8 yydefact[] =
 {
        0,     0,     0,     5,    87,     0,     1,     0,     2,     5,
        0,     8,     4,     0,     0,     0,     7,     0,     9,    11,
-       0,     0,    29,     0,    11,     0,    29,     0,     0,    26,
-       6,    10,    20,    27,     0,     0,    28,     0,    23,    12,
+       0,     0,    29,    29,     0,    11,     0,     0,     0,    27,
+      26,     6,    10,    20,     0,     0,    28,     0,    23,    12,
       14,     0,    17,    15,     0,    13,     0,     0,     0,     0,
       61,    62,     0,     0,     0,    44,    60,    63,    64,    67,
       65,    74,    77,    86,    19,     0,    22,     0,    16,     0,
-      31,    70,    69,     0,    58,    87,     0,     0,     0,     0,
+      31,    70,    69,     0,    58,    29,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,    24,    20,    31,     0,
        0,     0,     0,     0,     0,     0,    44,     0,     0,    31,
@@ -1511,19 +1667,19 @@ static const yytype_uint8 yydefact[] =
   /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
-    -168,  -168,  -168,   221,  -168,  -168,  -168,   207,  -168,  -168,
-      89,   151,  -168,   223,  -168,   116,     1,   236,   -93,  -167,
-     -62,   -60,   -64,  -168,    82,   -77,    99,   -32,     0,   222,
-     -36,    -1
+    -169,  -169,  -169,   245,  -169,  -169,  -169,   248,  -169,  -169,
+     135,   187,  -169,   251,  -169,   148,   -13,   264,   -94,  -168,
+     -63,   -61,   -65,  -169,   109,   -78,   124,   -33,   -19,   205,
+     -37,  -169
 };
 
   /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int16 yydefgoto[] =
 {
-      -1,     2,     3,     8,     9,    15,    16,    23,    24,    39,
+      -1,     2,     3,     8,     9,    15,    16,    24,    25,    39,
       40,    41,    42,    43,    65,    66,   107,    29,   108,   109,
       58,    59,    60,   113,   160,   161,   122,    61,    62,    63,
-     120,    26
+     120,     5
 };
 
   /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -1531,74 +1687,72 @@ static const yytype_int16 yydefgoto[] =
      number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
-       5,    64,   119,   156,     1,   142,   112,    79,   110,   157,
-     111,    80,    73,    18,    71,    72,   152,    74,   193,   194,
-      25,    37,    28,     4,   124,    25,    34,    81,   125,   158,
-     198,    38,    83,    84,   112,   143,   110,     6,   111,    67,
-       7,     4,   118,    22,   123,   112,   166,   110,   154,   111,
-      11,   127,   128,    76,    79,    10,    46,    47,    80,    75,
-      19,    22,    21,    13,    48,   121,   -87,    14,   -87,   149,
-      17,    49,    50,    51,   155,   112,     4,   110,    22,   111,
-     179,    52,    53,    85,    86,   129,   130,    54,    55,    56,
-      27,    57,    20,    30,    44,    32,    35,    36,    38,    87,
-      88,    89,    90,    91,    92,    68,    93,    69,   170,   171,
-     172,   173,    70,    77,    95,    82,    78,   115,   177,    96,
-     178,   112,   112,   110,   110,   111,   111,    94,   174,   123,
-      46,    47,    98,   112,    99,   110,    97,   111,    48,   100,
-     101,    67,   116,   117,   126,    49,    50,    51,   102,   103,
-     139,   104,    53,   105,   140,    52,    53,   180,   106,    37,
-      22,    54,    55,    56,   104,    57,    87,    88,    89,    90,
-      91,    92,   144,    93,    87,    88,    89,    90,    91,    92,
-     145,    93,   148,   192,    87,    88,    89,    90,    91,    92,
-     150,    93,   146,   147,    94,   189,   151,   153,   125,   159,
-     164,   114,    94,   190,    87,    88,    89,    90,    91,    92,
-     168,    93,    94,    87,    88,    89,    90,    91,    92,   169,
-      93,   162,   176,   181,   183,   184,   163,   195,   196,   197,
-      12,    31,    94,    87,    88,    89,    90,    91,    92,   175,
-      93,    94,    87,    88,    89,    90,    91,    92,   141,    93,
-      87,    88,    89,    90,    91,    92,   167,    93,    45,   185,
-     165,    94,    33,   191,   182,     0,     0,   186,     0,     0,
-      94,     0,    87,    88,    89,    90,    91,    92,    94,    93,
-      87,    88,    89,    90,    91,    92,     0,    93,     0,   187,
-       0,    87,    88,    89,    90,    91,    92,   188,    93,     0,
-      94,     0,     0,     0,     0,     0,     0,     0,    94,   131,
-     132,   133,   134,   135,   136,   137,   138,     0,     0,    94
+      64,   119,    83,    84,   142,   112,    26,   110,    28,   111,
+       6,    73,    26,    71,    72,   152,    74,   193,   194,    87,
+      88,    89,    90,    91,    92,    67,    93,   124,     1,   198,
+      37,   125,   154,   112,   143,   110,   114,   111,    79,    76,
+      38,   118,    80,   123,   112,   166,   110,    94,   111,    79,
+     127,   128,    22,    80,    23,    46,    47,     4,   155,   156,
+      75,     7,    23,    48,   121,   157,   129,   130,   149,    81,
+      49,    50,    51,    11,   112,    98,   110,    99,   111,   179,
+      52,    53,   100,   101,    21,   158,    54,    55,    56,    10,
+      57,   102,   103,    13,   104,    53,   105,   -29,    22,   -29,
+      23,   106,    14,    23,    85,    86,    17,   170,   171,   172,
+     173,    87,    88,    89,    90,    91,    92,   177,    93,   178,
+     112,   112,   110,   110,   111,   111,    18,    67,   123,    46,
+      47,    19,   112,    20,   110,    27,   111,    48,    31,    94,
+     174,    33,    34,    35,    49,    50,    51,    36,    44,    38,
+      70,    68,    69,    78,    52,    53,    77,    95,    82,    96,
+      54,    55,    56,   115,    57,    87,    88,    89,    90,    91,
+      92,   116,    93,    87,    88,    89,    90,    91,    92,    97,
+      93,    87,    88,    89,    90,    91,    92,   140,    93,   117,
+     126,   139,    37,    94,   189,   104,   144,   148,   162,   145,
+     146,    94,   190,    87,    88,    89,    90,    91,    92,    94,
+      93,   147,   150,   151,   153,   168,   163,    87,    88,    89,
+      90,    91,    92,   159,    93,    87,    88,    89,    90,    91,
+      92,    94,    93,    87,    88,    89,    90,    91,    92,   164,
+      93,   169,   185,   176,   165,    94,   181,   125,   184,   180,
+     186,   183,   192,    94,    12,    87,    88,    89,    90,    91,
+      92,    94,    93,    87,    88,    89,    90,    91,    92,   195,
+      93,   196,   187,    32,    87,    88,    89,    90,    91,    92,
+     188,    93,   197,    94,   141,   175,    45,    30,   167,   182,
+     191,    94,   131,   132,   133,   134,   135,   136,   137,   138,
+       0,     0,    94
 };
 
 static const yytype_int16 yycheck[] =
 {
-       1,    37,    79,     9,    23,    98,    70,    15,    70,    15,
-      70,    19,    48,    14,    46,    47,   109,    49,   185,   186,
-      19,     9,    21,    43,    39,    24,    27,    35,    43,    35,
-     197,    19,    13,    14,    98,    99,    98,     0,    98,    38,
-      23,    43,    78,    45,    80,   109,   139,   109,     9,   109,
-      43,    83,    84,    52,    15,    17,    11,    12,    19,    43,
-      17,    45,    29,    22,    19,    20,    41,    21,    43,   105,
-      19,    26,    27,    28,    35,   139,    43,   139,    45,   139,
-     157,    36,    37,    11,    12,    85,    86,    42,    43,    44,
-      41,    46,    45,    18,    20,    43,    43,    41,    19,     3,
-       4,     5,     6,     7,     8,    32,    10,    30,   144,   145,
-     146,   147,    17,    35,    20,    35,    19,    19,   154,    43,
-     156,   185,   186,   185,   186,   185,   186,    31,    32,   165,
-      11,    12,    17,   197,    19,   197,    43,   197,    19,    24,
-      25,   140,    15,    43,    43,    26,    27,    28,    33,    34,
-      17,    36,    37,    38,    30,    36,    37,   158,    43,     9,
-      45,    42,    43,    44,    36,    46,     3,     4,     5,     6,
-       7,     8,    19,    10,     3,     4,     5,     6,     7,     8,
-      19,    10,    43,   184,     3,     4,     5,     6,     7,     8,
-      43,    10,    19,    19,    31,    32,    18,    32,    43,    20,
-      20,    20,    31,    32,     3,     4,     5,     6,     7,     8,
-      18,    10,    31,     3,     4,     5,     6,     7,     8,    20,
-      10,    20,    18,    15,    18,    35,    16,    32,    32,    40,
-       9,    24,    31,     3,     4,     5,     6,     7,     8,   150,
-      10,    31,     3,     4,     5,     6,     7,     8,    97,    10,
-       3,     4,     5,     6,     7,     8,   140,    10,    35,    20,
-      30,    31,    26,   181,   165,    -1,    -1,    20,    -1,    -1,
-      31,    -1,     3,     4,     5,     6,     7,     8,    31,    10,
-       3,     4,     5,     6,     7,     8,    -1,    10,    -1,    20,
-      -1,     3,     4,     5,     6,     7,     8,    20,    10,    -1,
-      31,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    31,    87,
-      88,    89,    90,    91,    92,    93,    94,    -1,    -1,    31
+      37,    79,    13,    14,    98,    70,    19,    70,    21,    70,
+       0,    48,    25,    46,    47,   109,    49,   185,   186,     3,
+       4,     5,     6,     7,     8,    38,    10,    39,    23,   197,
+       9,    43,     9,    98,    99,    98,    20,    98,    15,    52,
+      19,    78,    19,    80,   109,   139,   109,    31,   109,    15,
+      83,    84,    43,    19,    45,    11,    12,    43,    35,     9,
+      43,    23,    45,    19,    20,    15,    85,    86,   105,    35,
+      26,    27,    28,    43,   139,    17,   139,    19,   139,   157,
+      36,    37,    24,    25,    29,    35,    42,    43,    44,    17,
+      46,    33,    34,    22,    36,    37,    38,    41,    43,    43,
+      45,    43,    21,    45,    11,    12,    19,   144,   145,   146,
+     147,     3,     4,     5,     6,     7,     8,   154,    10,   156,
+     185,   186,   185,   186,   185,   186,    43,   140,   165,    11,
+      12,    17,   197,    45,   197,    41,   197,    19,    18,    31,
+      32,    43,    43,    43,    26,    27,    28,    41,    20,    19,
+      17,    32,    30,    19,    36,    37,    35,    20,    35,    43,
+      42,    43,    44,    19,    46,     3,     4,     5,     6,     7,
+       8,    15,    10,     3,     4,     5,     6,     7,     8,    43,
+      10,     3,     4,     5,     6,     7,     8,    30,    10,    43,
+      43,    17,     9,    31,    32,    36,    19,    43,    20,    19,
+      19,    31,    32,     3,     4,     5,     6,     7,     8,    31,
+      10,    19,    43,    18,    32,    18,    16,     3,     4,     5,
+       6,     7,     8,    20,    10,     3,     4,     5,     6,     7,
+       8,    31,    10,     3,     4,     5,     6,     7,     8,    20,
+      10,    20,    20,    18,    30,    31,    15,    43,    35,    43,
+      20,    18,    43,    31,     9,     3,     4,     5,     6,     7,
+       8,    31,    10,     3,     4,     5,     6,     7,     8,    32,
+      10,    32,    20,    25,     3,     4,     5,     6,     7,     8,
+      20,    10,    40,    31,    97,   150,    35,    23,   140,   165,
+     181,    31,    87,    88,    89,    90,    91,    92,    93,    94,
+      -1,    -1,    31
 };
 
   /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
@@ -1606,9 +1760,9 @@ static const yytype_int16 yycheck[] =
 static const yytype_uint8 yystos[] =
 {
        0,    23,    48,    49,    43,    78,     0,    23,    50,    51,
-      17,    43,    50,    22,    21,    52,    53,    19,    78,    17,
-      45,    29,    45,    54,    55,    63,    78,    41,    63,    64,
-      18,    54,    43,    64,    78,    43,    41,     9,    19,    56,
+      17,    43,    50,    22,    21,    52,    53,    19,    43,    17,
+      45,    29,    43,    45,    54,    55,    63,    41,    63,    64,
+      64,    18,    54,    43,    43,    43,    41,     9,    19,    56,
       57,    58,    59,    60,    20,    60,    11,    12,    19,    26,
       27,    28,    36,    37,    42,    43,    44,    46,    67,    68,
       69,    74,    75,    76,    77,    61,    62,    63,    32,    30,
@@ -1623,8 +1777,8 @@ static const yytype_uint8 yystos[] =
       43,    18,    65,    32,     9,    35,     9,    15,    35,    20,
       71,    72,    20,    16,    20,    30,    65,    62,    18,    20,
       77,    77,    77,    77,    32,    57,    18,    77,    77,    72,
-      78,    15,    73,    18,    35,    20,    20,    20,    20,    32,
-      32,    71,    78,    66,    66,    32,    32,    40,    66
+      43,    15,    73,    18,    35,    20,    20,    20,    20,    32,
+      32,    71,    43,    66,    66,    32,    32,    40,    66
 };
 
   /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
@@ -2337,67 +2491,117 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 907 "parser.y"
+#line 1064 "parser.y"
     {
 		execStatement((statement*)(yyvsp[-1].statem));
+		pushTable(NULL);
+		checking = 0;
+		if(checkBool){
+			initInputArgs(inpName);
+			execStatement((statement*)(yyvsp[-1].statem));
+		}
 	}
-#line 2345 "y.tab.c"
+#line 2505 "y.tab.c"
     break;
 
   case 3:
-#line 913 "parser.y"
+#line 1076 "parser.y"
     {
+		inpName = (yyvsp[-5].str);
+		initInputArgs((yyvsp[-5].str));
 		(yyval.statem) = (yyvsp[-2].statem);
 	}
-#line 2353 "y.tab.c"
+#line 2515 "y.tab.c"
     break;
 
   case 4:
-#line 919 "parser.y"
+#line 1084 "parser.y"
     {
 		classInsert((classEntry*)(yyvsp[-1].clEntry));
 	}
-#line 2361 "y.tab.c"
+#line 2523 "y.tab.c"
     break;
 
   case 5:
-#line 922 "parser.y"
+#line 1087 "parser.y"
     {}
-#line 2367 "y.tab.c"
+#line 2529 "y.tab.c"
     break;
 
   case 6:
-#line 926 "parser.y"
+#line 1091 "parser.y"
     {
 		classEntryY* class = malloc(sizeof(classEntryY));
 		class->list = (yyvsp[-1].varMethList);
 		class->name = (yyvsp[-4].str);
+		class->parent = (yyvsp[-3].str);
 		(yyval.clEntry) = class;
 	}
-#line 2378 "y.tab.c"
+#line 2541 "y.tab.c"
+    break;
+
+  case 7:
+#line 1101 "parser.y"
+    {
+		(yyval.str) = (yyvsp[0].str);
+	}
+#line 2549 "y.tab.c"
+    break;
+
+  case 8:
+#line 1104 "parser.y"
+    {
+		(yyval.str) = NULL;
+	}
+#line 2557 "y.tab.c"
+    break;
+
+  case 9:
+#line 1110 "parser.y"
+    {
+		(yyval.str) = (yyvsp[0].str);
+	}
+#line 2565 "y.tab.c"
     break;
 
   case 10:
-#line 944 "parser.y"
+#line 1116 "parser.y"
     {
-		(yyvsp[-1].varMethList)->methods->next = (yyvsp[0].varMethList)->methods;
+		if((yyvsp[0].varMethList)!=NULL){
+			if((yyvsp[-1].varMethList)->methods==NULL)
+				(yyvsp[-1].varMethList)->methods = (yyvsp[0].varMethList)->methods;
+			else if((yyvsp[0].varMethList)->methods!=NULL)
+				(yyvsp[-1].varMethList)->methods->next = (yyvsp[0].varMethList)->methods;
+			if((yyvsp[-1].varMethList)->table==NULL)
+				(yyvsp[-1].varMethList)->table = (yyvsp[0].varMethList)->table;
+			else if((yyvsp[0].varMethList)->table!=NULL)
+				(yyvsp[-1].varMethList)->table->next = (yyvsp[0].varMethList)->table;
+		}
 		(yyval.varMethList) = (yyvsp[-1].varMethList);	
 	}
-#line 2387 "y.tab.c"
+#line 2583 "y.tab.c"
     break;
 
   case 11:
-#line 948 "parser.y"
-    {}
-#line 2393 "y.tab.c"
+#line 1129 "parser.y"
+    {
+		(yyval.varMethList) = NULL;		
+	}
+#line 2591 "y.tab.c"
     break;
 
   case 12:
-#line 952 "parser.y"
+#line 1135 "parser.y"
     {				//no vars yet
 		if((yyvsp[0].varMethList)->methods==NULL){		//declare vars
 			//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
+			if((yyvsp[0].varMethList)->table->tree!=NULL)
+				(yyvsp[0].varMethList)->table->term = (nonTermY*)solveAst((ast*)(yyvsp[0].varMethList)->table->tree);
+			else
+				(yyvsp[0].varMethList)->table->term = malloc(sizeof(nonTerm));
+			(yyvsp[0].varMethList)->table->next = NULL;
 			(yyvsp[0].varMethList)->table->term->arrType = (yyvsp[-2].type);		//arrays dont work	
+			(yyvsp[0].varMethList)->table->name = (yyvsp[-1].str);
 		} else {			//method
 			(yyvsp[0].varMethList)->methods->type = (yyvsp[-2].type);
 			(yyvsp[0].varMethList)->methods->name = (yyvsp[-1].str);
@@ -2405,11 +2609,11 @@ yyreduce:
 		(yyval.varMethList) = (yyvsp[0].varMethList);
 		
 	}
-#line 2409 "y.tab.c"
+#line 2613 "y.tab.c"
     break;
 
   case 13:
-#line 963 "parser.y"
+#line 1152 "parser.y"
     { 
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->methods = (methodList*)(yyvsp[0].methList);
@@ -2417,59 +2621,59 @@ yyreduce:
 		list->methods->name = (yyvsp[-1].str);
 		(yyval.varMethList) = (varMethodListY*)list;
 	}
-#line 2421 "y.tab.c"
+#line 2625 "y.tab.c"
     break;
 
   case 14:
-#line 973 "parser.y"
+#line 1162 "parser.y"
     {
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->table = (sym*)(yyvsp[0].termList);
 		(yyval.varMethList) = (varMethodListY*)list;
 		
 	}
-#line 2432 "y.tab.c"
+#line 2636 "y.tab.c"
     break;
 
   case 15:
-#line 979 "parser.y"
+#line 1168 "parser.y"
     {
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->methods = (methodList*)(yyvsp[0].methList);
 		(yyval.varMethList) = (varMethodListY*)list;
 	}
-#line 2442 "y.tab.c"
+#line 2646 "y.tab.c"
     break;
 
   case 16:
-#line 987 "parser.y"
+#line 1176 "parser.y"
     {(yyval.termList) = (yyvsp[-1].termList);}
-#line 2448 "y.tab.c"
+#line 2652 "y.tab.c"
     break;
 
   case 17:
-#line 991 "parser.y"
+#line 1180 "parser.y"
     {
 		/*symY* var = malloc(sizeof(symY));
 		var->term = &$1;
 		$$ = var;*/
 		(yyval.termList) = (yyvsp[0].termList);
 	}
-#line 2459 "y.tab.c"
+#line 2663 "y.tab.c"
     break;
 
   case 18:
-#line 997 "parser.y"
+#line 1186 "parser.y"
     {
 		(yyvsp[0].termList)->name = (yyvsp[-1].str);
 		(yyvsp[-3].termList)->next = (yyvsp[0].termList);
 		(yyval.termList) = (yyvsp[-3].termList);
 	}
-#line 2469 "y.tab.c"
+#line 2673 "y.tab.c"
     break;
 
   case 19:
-#line 1005 "parser.y"
+#line 1194 "parser.y"
     {
 		//$$ = *(nonTermY*)solveAst((ast*)$2);
 		symY* var = malloc(sizeof(symY));
@@ -2477,47 +2681,47 @@ yyreduce:
 		var->tree = (yyvsp[0].tree);
 		(yyval.termList) = var;
 	}
-#line 2481 "y.tab.c"
+#line 2685 "y.tab.c"
     break;
 
   case 20:
-#line 1012 "parser.y"
+#line 1201 "parser.y"
     {
 		symY* var = malloc(sizeof(symY));
 		(yyval.termList) = var;
 	}
-#line 2490 "y.tab.c"
+#line 2694 "y.tab.c"
     break;
 
   case 21:
-#line 1019 "parser.y"
+#line 1208 "parser.y"
     {		//FIX
 		methodList* methods = malloc(sizeof(methodList));
 		methods->arg = (sym*)(yyvsp[-4].termList);
 		methods->statementList = (statement*)(yyvsp[-1].statem);
 		(yyval.methList) = (methodListY*)methods;
 	}
-#line 2501 "y.tab.c"
+#line 2705 "y.tab.c"
     break;
 
   case 22:
-#line 1028 "parser.y"
+#line 1217 "parser.y"
     {
 		(yyval.termList) = (yyvsp[0].termList);
 	}
-#line 2509 "y.tab.c"
+#line 2713 "y.tab.c"
     break;
 
   case 23:
-#line 1031 "parser.y"
+#line 1220 "parser.y"
     {
 		(yyval.termList) = NULL;
 	}
-#line 2517 "y.tab.c"
+#line 2721 "y.tab.c"
     break;
 
   case 24:
-#line 1037 "parser.y"
+#line 1226 "parser.y"
     {									//no array support
 		symY* var = malloc(sizeof(symY));
 		//var->term = (nonTermY*)solveAst((ast*)$2);
@@ -2527,11 +2731,11 @@ yyreduce:
 		var->term->type = (yyvsp[-1].type)->type;
 		(yyval.termList) = var;
 	}
-#line 2531 "y.tab.c"
+#line 2735 "y.tab.c"
     break;
 
   case 25:
-#line 1046 "parser.y"
+#line 1235 "parser.y"
     {
 		symY* var = malloc(sizeof(symY));
 		//var->term = (nonTermY*)solveAst((ast*)$2);
@@ -2542,74 +2746,78 @@ yyreduce:
 		var->next = (yyvsp[0].termList);
 		(yyval.termList) = var;
 	}
-#line 2546 "y.tab.c"
+#line 2750 "y.tab.c"
     break;
 
   case 26:
-#line 1058 "parser.y"
+#line 1247 "parser.y"
     {
 		(yyval.type) = malloc(sizeof(arrTypeY));
 		(yyval.type)->type = setType((yyvsp[-1].str));
 		(yyval.type)->deg = (yyvsp[0].num);
 	}
-#line 2556 "y.tab.c"
+#line 2760 "y.tab.c"
     break;
 
   case 27:
-#line 1063 "parser.y"
-    {}
-#line 2562 "y.tab.c"
+#line 1252 "parser.y"
+    {
+		(yyval.type) = malloc(sizeof(arrTypeY));
+		(yyval.type)->type = CLASSy;
+		(yyval.type)->class = (yyvsp[-1].str);
+	}
+#line 2770 "y.tab.c"
     break;
 
   case 28:
-#line 1066 "parser.y"
+#line 1259 "parser.y"
     {(yyval.num)++;}
-#line 2568 "y.tab.c"
+#line 2776 "y.tab.c"
     break;
 
   case 29:
-#line 1067 "parser.y"
+#line 1260 "parser.y"
     {(yyval.num) = 1;}
-#line 2574 "y.tab.c"
+#line 2782 "y.tab.c"
     break;
 
   case 30:
-#line 1071 "parser.y"
+#line 1264 "parser.y"
     {
 		//execStatement((statement*)$2);
 		(yyvsp[-1].statem)->next = (yyvsp[0].statem);
 		(yyval.statem) = (yyvsp[-1].statem);	
 	}
-#line 2584 "y.tab.c"
+#line 2792 "y.tab.c"
     break;
 
   case 31:
-#line 1076 "parser.y"
+#line 1269 "parser.y"
     {
 		(yyval.statem) = NULL;	//this needs to be here
 	}
-#line 2592 "y.tab.c"
+#line 2800 "y.tab.c"
     break;
 
   case 32:
-#line 1082 "parser.y"
+#line 1275 "parser.y"
     {
 		statement* statem = mkStatement(DECLY, NULL, (yyvsp[-1].str), NULL, NULL, (arrType*)(yyvsp[-2].type), (sym*)(yyvsp[0].termList));
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 2601 "y.tab.c"
+#line 2809 "y.tab.c"
     break;
 
   case 33:
-#line 1086 "parser.y"
+#line 1279 "parser.y"
     {
 		(yyval.statem) = (yyvsp[-1].statem);
 	}
-#line 2609 "y.tab.c"
+#line 2817 "y.tab.c"
     break;
 
   case 34:
-#line 1089 "parser.y"
+#line 1282 "parser.y"
     {
 		statement* statem = mkStatement(IFELSEY, NULL, NULL, NULL, NULL, NULL, NULL);
 		statem->conditional = (ast*)(yyvsp[-4].tree);
@@ -2617,11 +2825,11 @@ yyreduce:
 		statem->sub2 = (statement*)(yyvsp[0].statem);
 		(yyval.statem) = (statementY*)statem;		
 	}
-#line 2621 "y.tab.c"
+#line 2829 "y.tab.c"
     break;
 
   case 35:
-#line 1096 "parser.y"
+#line 1289 "parser.y"
     {	//This guy adds an extra null statement that gets checked
 		statement* statem = mkStatement(WHILENY, NULL, NULL, NULL, NULL, NULL, NULL);		
 		statem->conditional = (ast*)(yyvsp[-2].tree);
@@ -2629,64 +2837,64 @@ yyreduce:
 		(yyval.statem) = (statementY*)statem;
 		
 	}
-#line 2633 "y.tab.c"
+#line 2841 "y.tab.c"
     break;
 
   case 36:
-#line 1103 "parser.y"
+#line 1296 "parser.y"
     {
 		statement* statem = mkStatement(PRINTNLINE, NULL, NULL, NULL, (ast*)(yyvsp[-2].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 2642 "y.tab.c"
+#line 2850 "y.tab.c"
     break;
 
   case 37:
-#line 1107 "parser.y"
+#line 1300 "parser.y"
     {
 		statement* statem = mkStatement(PRINTN, NULL, NULL, NULL, (ast*)(yyvsp[-2].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 2651 "y.tab.c"
+#line 2859 "y.tab.c"
     break;
 
   case 38:
-#line 1111 "parser.y"
+#line 1304 "parser.y"
     {
 		//$1->term = (nonTermY*)solveAst((ast*)$3);
 		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)(yyvsp[-3].strarr), (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 		//memcpy((void*)$1->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));	//lol
 	}
-#line 2662 "y.tab.c"
+#line 2870 "y.tab.c"
     break;
 
   case 39:
-#line 1117 "parser.y"
+#line 1310 "parser.y"
     {
 		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)(yyvsp[-3].strarr), (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 2671 "y.tab.c"
+#line 2879 "y.tab.c"
     break;
 
   case 40:
-#line 1121 "parser.y"
+#line 1314 "parser.y"
     {
 		statement* statem = mkStatement(RET, NULL, NULL, NULL, (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 2680 "y.tab.c"
+#line 2888 "y.tab.c"
     break;
 
   case 41:
-#line 1125 "parser.y"
+#line 1318 "parser.y"
     {}
-#line 2686 "y.tab.c"
+#line 2894 "y.tab.c"
     break;
 
   case 42:
-#line 1130 "parser.y"
+#line 1323 "parser.y"
     {
 		strArrY* this = (yyvsp[-3].strarr);
 		//symY* this2 = $3;
@@ -2700,19 +2908,19 @@ yyreduce:
 		(yyval.strarr) = (yyvsp[-3].strarr);
 	
 	}
-#line 2704 "y.tab.c"
+#line 2912 "y.tab.c"
     break;
 
   case 43:
-#line 1143 "parser.y"
+#line 1336 "parser.y"
     {
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 2712 "y.tab.c"
+#line 2920 "y.tab.c"
     break;
 
   case 44:
-#line 1149 "parser.y"
+#line 1342 "parser.y"
     {
 		//if(search($1)!=NULL)
 			strArrY* this = malloc(sizeof(strArrY));
@@ -2722,11 +2930,11 @@ yyreduce:
 		//else
 		//	typeViolation();
 	}
-#line 2726 "y.tab.c"
+#line 2934 "y.tab.c"
     break;
 
   case 45:
-#line 1158 "parser.y"
+#line 1351 "parser.y"
     {
 		if((yyvsp[-2].strarr)->num == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->num = malloc(sizeof(astListY));
@@ -2743,11 +2951,11 @@ yyreduce:
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 2747 "y.tab.c"
+#line 2955 "y.tab.c"
     break;
 
   case 46:
-#line 1174 "parser.y"
+#line 1367 "parser.y"
     {
 		if((yyvsp[-2].strarr)->class == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
@@ -2763,24 +2971,23 @@ yyreduce:
 	
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
-		printf("zobbles!\n");
 	}
-#line 2769 "y.tab.c"
+#line 2976 "y.tab.c"
     break;
 
   case 47:
-#line 1191 "parser.y"
+#line 1383 "parser.y"
     {
 		char* str = (yyvsp[0].str);
 		(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
 		(yyvsp[-2].strarr)->class->name = (yyvsp[0].str);
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 2780 "y.tab.c"
+#line 2987 "y.tab.c"
     break;
 
   case 48:
-#line 1197 "parser.y"
+#line 1389 "parser.y"
     {
 		char* str = (yyvsp[0].str);
 		strArrY* this = malloc(sizeof(strArrY));
@@ -2790,288 +2997,336 @@ yyreduce:
 		this->class->name = (yyvsp[0].str);	
 		(yyval.strarr) = this;
 	}
-#line 2794 "y.tab.c"
+#line 3001 "y.tab.c"
     break;
 
   case 49:
-#line 1209 "parser.y"
+#line 1401 "parser.y"
     {
 		strArrY* this = malloc(sizeof(strArrY));
 		this->str = (yyvsp[-2].str);
 		(yyval.strarr) = this;
 	}
-#line 2804 "y.tab.c"
+#line 3011 "y.tab.c"
+    break;
+
+  case 50:
+#line 1409 "parser.y"
+    {
+		if((yyvsp[-2].strarr)->num == NULL){		//first deg of array
+			(yyvsp[-2].strarr)->num = malloc(sizeof(astListY));
+			(yyvsp[-2].strarr)->num->num = (yyvsp[0].tree);
+		} else {
+
+		astListY* current = (yyvsp[-2].strarr)->num;
+		while(current->next!=NULL)
+			current = current->next;	//points to tail
+
+		current->next = malloc(sizeof(astListY));
+		current->next->num = (yyvsp[0].tree);
+	
+		}
+		(yyval.strarr) = (yyvsp[-2].strarr);
+	}
+#line 3032 "y.tab.c"
+    break;
+
+  case 51:
+#line 1425 "parser.y"
+    {
+		if((yyvsp[-2].strarr)->class == NULL){		//first deg of array
+			(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
+			(yyvsp[-2].strarr)->class->name = (yyvsp[0].str);
+		} else {
+
+		classLinkListY* current = (yyvsp[-2].strarr)->class;
+		while(current->next!=NULL)
+			current = current->next;	//points to tail
+
+		current->next = malloc(sizeof(classLinkListY));
+		current->next->name = (yyvsp[0].str);
+	
+		}
+		(yyval.strarr) = (yyvsp[-2].strarr);
+	}
+#line 3053 "y.tab.c"
     break;
 
   case 52:
-#line 1219 "parser.y"
-    {}
-#line 2810 "y.tab.c"
+#line 1441 "parser.y"
+    {
+		char* str = (yyvsp[0].str);
+		(yyvsp[-3].strarr)->class = malloc(sizeof(classLinkListY));
+		(yyvsp[-3].strarr)->class->name = (yyvsp[0].str);
+		(yyval.strarr) = (yyvsp[-3].strarr);
+
+	}
+#line 3065 "y.tab.c"
     break;
 
   case 53:
-#line 1223 "parser.y"
+#line 1451 "parser.y"
     {
 		(yyval.numList) = malloc(sizeof(astListY));
 		(yyval.numList)->num = (yyvsp[-2].tree);
 		(yyval.numList)->next = (yyvsp[0].numList);	
 	}
-#line 2820 "y.tab.c"
+#line 3075 "y.tab.c"
     break;
 
   case 54:
-#line 1228 "parser.y"
+#line 1456 "parser.y"
     {
 		(yyval.numList) = malloc(sizeof(astListY));
 		(yyval.numList)->num = (yyvsp[0].tree);
 	}
-#line 2829 "y.tab.c"
+#line 3084 "y.tab.c"
     break;
 
   case 55:
-#line 1234 "parser.y"
+#line 1462 "parser.y"
     {
 		(yyval.tree) = (yyvsp[-1].tree);
 	}
-#line 2837 "y.tab.c"
+#line 3092 "y.tab.c"
     break;
 
   case 56:
-#line 1240 "parser.y"
+#line 1468 "parser.y"
     {
 		astList* list = malloc(sizeof(astList));
 		list->num = (ast*)(yyvsp[0].tree);
 		(yyval.numList) = (astListY*)list;
 	}
-#line 2847 "y.tab.c"
+#line 3102 "y.tab.c"
     break;
 
   case 57:
-#line 1245 "parser.y"
+#line 1473 "parser.y"
     {
 		astList* list = malloc(sizeof(astList));
 		list->num = (ast*)(yyvsp[-2].tree);
 		list->next = (astList*)(yyvsp[0].numList);	
 		(yyval.numList) = (astListY*)list;
 	}
-#line 2858 "y.tab.c"
+#line 3113 "y.tab.c"
     break;
 
   case 58:
-#line 1254 "parser.y"
+#line 1482 "parser.y"
     {
 		int* zero = malloc(sizeof(int));
 		*zero = 0;
 		astY* zed = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)zero));
 		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[0].tree), (ast*)zed, EQUIVALENTy);
 	}
-#line 2869 "y.tab.c"
+#line 3124 "y.tab.c"
     break;
 
   case 59:
-#line 1260 "parser.y"
+#line 1488 "parser.y"
     {(yyval.tree) = (yyvsp[-1].tree);}
-#line 2875 "y.tab.c"
+#line 3130 "y.tab.c"
     break;
 
   case 60:
-#line 1261 "parser.y"
+#line 1489 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)(yyvsp[0].str)));
 	}
-#line 2883 "y.tab.c"
+#line 3138 "y.tab.c"
     break;
 
   case 61:
-#line 1264 "parser.y"
+#line 1492 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&(yyvsp[0].num)));
 	}
-#line 2891 "y.tab.c"
+#line 3146 "y.tab.c"
     break;
 
   case 62:
-#line 1267 "parser.y"
+#line 1495 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&(yyvsp[0].num)));
 	}
-#line 2899 "y.tab.c"
+#line 3154 "y.tab.c"
     break;
 
   case 63:
-#line 1270 "parser.y"
+#line 1498 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&(yyvsp[0].num)));
 	}
-#line 2907 "y.tab.c"
+#line 3162 "y.tab.c"
     break;
 
   case 64:
-#line 1273 "parser.y"
+#line 1501 "parser.y"
     {
 		if((yyvsp[0].strarr)!=NULL){
 			(yyval.tree) = (astY*)mkLeafStr((strArr*)(yyvsp[0].strarr));
 		}	
 	}
-#line 2917 "y.tab.c"
+#line 3172 "y.tab.c"
     break;
 
   case 65:
-#line 1278 "parser.y"
+#line 1506 "parser.y"
     {
+		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(CLASSY, (yyvsp[0].strarr)));
 	}
-#line 2924 "y.tab.c"
+#line 3180 "y.tab.c"
     break;
 
   case 66:
-#line 1280 "parser.y"
+#line 1509 "parser.y"
     {		//CREATE ENTIRE ARRAY USING LIST OF INT
 		(yyval.tree) = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (astList*)(yyvsp[0].numList)));
 		(yyval.tree)->node.leaf->arrType = (yyvsp[-2].type);
-
 	}
-#line 2934 "y.tab.c"
+#line 3189 "y.tab.c"
     break;
 
   case 67:
-#line 1285 "parser.y"
+#line 1513 "parser.y"
     {
 		if((yyvsp[0].strarr)!=NULL){
 			(yyval.tree) = (astY*)mkLeafStr((strArr*)(yyvsp[0].strarr));
 		}
 	}
-#line 2944 "y.tab.c"
+#line 3199 "y.tab.c"
     break;
 
   case 68:
-#line 1290 "parser.y"
+#line 1518 "parser.y"
     {}
-#line 2950 "y.tab.c"
+#line 3205 "y.tab.c"
     break;
 
   case 69:
-#line 1291 "parser.y"
+#line 1519 "parser.y"
     {
 		int* neg = malloc(sizeof(int));
 		*neg = -1;
 		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[0].tree), (ast*)mkLeaf(mkNonTerm(INTY, (void*)neg)), STARY);
 	}
-#line 2960 "y.tab.c"
+#line 3215 "y.tab.c"
     break;
 
   case 70:
-#line 1296 "parser.y"
+#line 1524 "parser.y"
     {
 		(yyval.tree) = (yyvsp[0].tree);
 	}
-#line 2968 "y.tab.c"
+#line 3223 "y.tab.c"
     break;
 
   case 71:
-#line 1299 "parser.y"
+#line 1527 "parser.y"
     {
 		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-1].tree), (ast*)(yyvsp[-1].tree), PARSEINTY);
 	}
-#line 2976 "y.tab.c"
+#line 3231 "y.tab.c"
     break;
 
   case 72:
-#line 1305 "parser.y"
+#line 1533 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), STARY);}
-#line 2982 "y.tab.c"
+#line 3237 "y.tab.c"
     break;
 
   case 73:
-#line 1306 "parser.y"
+#line 1534 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), SLASHY);}
-#line 2988 "y.tab.c"
+#line 3243 "y.tab.c"
     break;
 
   case 74:
-#line 1307 "parser.y"
+#line 1535 "parser.y"
     {(yyval.tree) = (yyvsp[0].tree);}
-#line 2994 "y.tab.c"
+#line 3249 "y.tab.c"
     break;
 
   case 75:
-#line 1311 "parser.y"
+#line 1539 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), PLUSY);}
-#line 3000 "y.tab.c"
+#line 3255 "y.tab.c"
     break;
 
   case 76:
-#line 1312 "parser.y"
+#line 1540 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), MINUSY);}
-#line 3006 "y.tab.c"
+#line 3261 "y.tab.c"
     break;
 
   case 77:
-#line 1313 "parser.y"
+#line 1541 "parser.y"
     {(yyval.tree) = (yyvsp[0].tree);}
-#line 3012 "y.tab.c"
+#line 3267 "y.tab.c"
     break;
 
   case 78:
-#line 1317 "parser.y"
+#line 1545 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ANDY);}
-#line 3018 "y.tab.c"
+#line 3273 "y.tab.c"
     break;
 
   case 79:
-#line 1318 "parser.y"
+#line 1546 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ORY);}
-#line 3024 "y.tab.c"
+#line 3279 "y.tab.c"
     break;
 
   case 80:
-#line 1319 "parser.y"
+#line 1547 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), LESSY);}
-#line 3030 "y.tab.c"
+#line 3285 "y.tab.c"
     break;
 
   case 81:
-#line 1320 "parser.y"
+#line 1548 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), GREATY);}
-#line 3036 "y.tab.c"
+#line 3291 "y.tab.c"
     break;
 
   case 82:
-#line 1321 "parser.y"
+#line 1549 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), LESSEQY);}
-#line 3042 "y.tab.c"
+#line 3297 "y.tab.c"
     break;
 
   case 83:
-#line 1322 "parser.y"
+#line 1550 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), GREATEQY);}
-#line 3048 "y.tab.c"
+#line 3303 "y.tab.c"
     break;
 
   case 84:
-#line 1323 "parser.y"
+#line 1551 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), EQUIVALENTY);}
-#line 3054 "y.tab.c"
+#line 3309 "y.tab.c"
     break;
 
   case 85:
-#line 1324 "parser.y"
+#line 1552 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), NOTEQUALY);}
-#line 3060 "y.tab.c"
+#line 3315 "y.tab.c"
     break;
 
   case 87:
-#line 1329 "parser.y"
+#line 1557 "parser.y"
     {
 		if(search((yyvsp[0].str))!=NULL){
 			memcpy((void*)&(yyval.term), (void*)search((yyvsp[0].str))->term, sizeof(nonTerm));
 		} else{		//do something if not declared yet, idk what
 		}
 	}
-#line 3071 "y.tab.c"
+#line 3326 "y.tab.c"
     break;
 
 
-#line 3075 "y.tab.c"
+#line 3330 "y.tab.c"
 
       default: break;
     }

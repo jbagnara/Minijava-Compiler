@@ -44,10 +44,12 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 720 "parser.y"
+#line 875 "parser.y"
 
 
 	struct astListY;
+	struct classEntryY;
+	struct symY;
 
 	typedef enum varTypeY{
 		UNDECY 		= -1,
@@ -61,6 +63,7 @@ extern int yydebug;
 
 	typedef struct arrTypeY{
 		varTypeY type;
+		char* class;
 		int deg;
 	} arrTypeY;
 
@@ -101,14 +104,6 @@ extern int yydebug;
 		nonTermY** term;
 	} nonTermArrY;
 
-	typedef struct classRefY {
-		char* name;
-		union subY{
-			struct statementY* list;
-			nonTermY* var;
-		} sub;
-	} classRefY;
-
 	struct strArrY;
 
 	typedef struct astY {
@@ -147,6 +142,11 @@ extern int yydebug;
 		astY* tree;
 	} symY;
 
+	typedef struct classRefY {
+		char* name;
+		symY* table;
+	} classRefY;
+
 
 	typedef struct methodListY {
 		char* name;
@@ -163,6 +163,7 @@ extern int yydebug;
 
 	typedef struct classEntryY {
 		char* name;
+		char* parent;
 		varMethodListY* list;
 	} classEntryY;
 
@@ -196,7 +197,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 200 "y.tab.h"
+#line 201 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -299,7 +300,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 872 "parser.y"
+#line 1028 "parser.y"
 
 	int num;
 	astListY* numList;
@@ -315,7 +316,7 @@ union YYSTYPE
 	classEntryY* clEntry;
 	classListY* clList;
 
-#line 319 "y.tab.h"
+#line 320 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

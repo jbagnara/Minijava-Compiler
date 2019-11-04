@@ -4,7 +4,7 @@ Grammar
 
     1 Program: MainClass ClassDeclList
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     3 ClassDeclList: ClassDecl ClassDeclList
     4              | %empty
@@ -14,7 +14,7 @@ Grammar
     6 ParentMaybe: Parent
     7            | %empty
 
-    8 Parent: EXTENDS id
+    8 Parent: EXTENDS WORD
 
     9 VarMethodDeclList: VarOrMethod VarMethodDeclList
    10                  | %empty
@@ -42,7 +42,7 @@ Grammar
    24           | Type WORD COMMA FormalList
 
    25 Type: PRIMETYPE BracketsList
-   26     | id BracketsList
+   26     | WORD BracketsList
 
    27 BracketsList: BracketsList BRACKETS
    28             | %empty
@@ -73,8 +73,8 @@ Grammar
    48 NewFunc: NEW WORD LPARENTH RPARENTH
 
    49 LeftValue2: LeftValue2 LBRACK Index
-   50           | LeftValue2 DOT id
-   51           | LPARENTH NewFunc RPARENTH DOT id
+   50           | LeftValue2 DOT WORD
+   51           | LPARENTH NewFunc RPARENTH DOT WORD
 
    52 IndexList: Index LBRACK IndexList
    53          | Index
@@ -164,7 +164,7 @@ Terminals, with rules where they appear
     ELSE <num> (295) 33
     BRACKETS <num> (296) 2 27
     PARSEINT <num> (297) 70
-    WORD <str> (298) 5 11 12 17 23 24 31 43 45 46 47 48 86
+    WORD <str> (298) 2 5 8 11 12 17 23 24 26 31 43 45 46 47 48 50 51 86
     STRING_LITERAL <str> (299) 59
     PRIMETYPE <str> (300) 2 25
     INTEGER_LITERAL <num> (301) 62
@@ -186,10 +186,10 @@ Nonterminals, with rules where they appear
     ClassDecl <clEntry> (51)
         on left: 5
         on right: 3
-    ParentMaybe (52)
+    ParentMaybe <str> (52)
         on left: 6 7
         on right: 5
-    Parent (53)
+    Parent <str> (53)
         on left: 8
         on right: 6
     VarMethodDeclList <varMethList> (54)
@@ -266,7 +266,7 @@ Nonterminals, with rules where they appear
         on right: 18 33 34 35 36 37 38 39 54 55 56 58 70 77 78 79 80 81 82 83 84
     id <term> (78)
         on left: 86
-        on right: 2 8 26 50 51
+        on right: 2
 
 
 State 0
@@ -281,7 +281,7 @@ State 0
 
 State 1
 
-    2 MainClass: CLASS . id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS . id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     WORD  shift, and go to state 4
 
@@ -316,7 +316,7 @@ State 4
 
 State 5
 
-    2 MainClass: CLASS id . LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id . LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     LBRACE  shift, and go to state 10
 
@@ -356,7 +356,7 @@ State 9
 
 State 10
 
-    2 MainClass: CLASS id LBRACE . HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE . HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     HEADER  shift, and go to state 13
 
@@ -382,18 +382,16 @@ State 12
 
 State 13
 
-    2 MainClass: CLASS id LBRACE HEADER . LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER . LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     LPARENTH  shift, and go to state 17
 
 
 State 14
 
-    8 Parent: EXTENDS . id
+    8 Parent: EXTENDS . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 18
+    WORD  shift, and go to state 18
 
 
 State 15
@@ -412,14 +410,14 @@ State 16
 
 State 17
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH . PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH . PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     PRIMETYPE  shift, and go to state 20
 
 
 State 18
 
-    8 Parent: EXTENDS id .
+    8 Parent: EXTENDS WORD .
 
     $default  reduce using rule 8 (Parent)
 
@@ -429,20 +427,19 @@ State 19
     5 ClassDecl: CLASS WORD ParentMaybe LBRACE . VarMethodDeclList RBRACE
 
     PUBLIC     shift, and go to state 21
-    WORD       shift, and go to state 4
-    PRIMETYPE  shift, and go to state 22
+    WORD       shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 10 (VarMethodDeclList)
 
-    VarMethodDeclList  go to state 23
-    VarOrMethod        go to state 24
-    Type               go to state 25
-    id                 go to state 26
+    VarMethodDeclList  go to state 24
+    VarOrMethod        go to state 25
+    Type               go to state 26
 
 
 State 20
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE . BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE . BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
     BRACKETS  shift, and go to state 27
 
@@ -451,16 +448,15 @@ State 21
 
    12 VarOrMethod: PUBLIC . Type WORD MethodDecl
 
-    WORD       shift, and go to state 4
-    PRIMETYPE  shift, and go to state 22
+    WORD       shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     Type  go to state 28
-    id    go to state 26
 
 
 State 22
 
-   25 Type: PRIMETYPE . BracketsList
+   26 Type: WORD . BracketsList
 
     $default  reduce using rule 28 (BracketsList)
 
@@ -469,50 +465,47 @@ State 22
 
 State 23
 
-    5 ClassDecl: CLASS WORD ParentMaybe LBRACE VarMethodDeclList . RBRACE
+   25 Type: PRIMETYPE . BracketsList
 
-    RBRACE  shift, and go to state 30
+    $default  reduce using rule 28 (BracketsList)
+
+    BracketsList  go to state 30
 
 
 State 24
 
-    9 VarMethodDeclList: VarOrMethod . VarMethodDeclList
+    5 ClassDecl: CLASS WORD ParentMaybe LBRACE VarMethodDeclList . RBRACE
 
-    PUBLIC     shift, and go to state 21
-    WORD       shift, and go to state 4
-    PRIMETYPE  shift, and go to state 22
-
-    $default  reduce using rule 10 (VarMethodDeclList)
-
-    VarMethodDeclList  go to state 31
-    VarOrMethod        go to state 24
-    Type               go to state 25
-    id                 go to state 26
+    RBRACE  shift, and go to state 31
 
 
 State 25
 
-   11 VarOrMethod: Type . WORD VarMethodDecl
+    9 VarMethodDeclList: VarOrMethod . VarMethodDeclList
 
-    WORD  shift, and go to state 32
+    PUBLIC     shift, and go to state 21
+    WORD       shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
+
+    $default  reduce using rule 10 (VarMethodDeclList)
+
+    VarMethodDeclList  go to state 32
+    VarOrMethod        go to state 25
+    Type               go to state 26
 
 
 State 26
 
-   26 Type: id . BracketsList
+   11 VarOrMethod: Type . WORD VarMethodDecl
 
-    $default  reduce using rule 28 (BracketsList)
-
-    BracketsList  go to state 33
+    WORD  shift, and go to state 33
 
 
 State 27
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS . id RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS . WORD RPARENTH LBRACE StatementList RBRACE RBRACE
 
-    WORD  shift, and go to state 4
-
-    id  go to state 34
+    WORD  shift, and go to state 34
 
 
 State 28
@@ -524,6 +517,16 @@ State 28
 
 State 29
 
+   26 Type: WORD BracketsList .
+   27 BracketsList: BracketsList . BRACKETS
+
+    BRACKETS  shift, and go to state 36
+
+    $default  reduce using rule 26 (Type)
+
+
+State 30
+
    25 Type: PRIMETYPE BracketsList .
    27 BracketsList: BracketsList . BRACKETS
 
@@ -532,21 +535,21 @@ State 29
     $default  reduce using rule 25 (Type)
 
 
-State 30
+State 31
 
     5 ClassDecl: CLASS WORD ParentMaybe LBRACE VarMethodDeclList RBRACE .
 
     $default  reduce using rule 5 (ClassDecl)
 
 
-State 31
+State 32
 
     9 VarMethodDeclList: VarOrMethod VarMethodDeclList .
 
     $default  reduce using rule 9 (VarMethodDeclList)
 
 
-State 32
+State 33
 
    11 VarOrMethod: Type WORD . VarMethodDecl
 
@@ -562,19 +565,9 @@ State 32
     MethodDecl     go to state 43
 
 
-State 33
-
-   26 Type: id BracketsList .
-   27 BracketsList: BracketsList . BRACKETS
-
-    BRACKETS  shift, and go to state 36
-
-    $default  reduce using rule 26 (Type)
-
-
 State 34
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id . RPARENTH LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD . RPARENTH LBRACE StatementList RBRACE RBRACE
 
     RPARENTH  shift, and go to state 44
 
@@ -625,15 +618,14 @@ State 38
 
    20 MethodDecl: LPARENTH . FormalListMaybe RPARENTH LBRACE StatementList RBRACE
 
-    WORD       shift, and go to state 4
-    PRIMETYPE  shift, and go to state 22
+    WORD       shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 22 (FormalListMaybe)
 
     FormalListMaybe  go to state 65
     FormalList       go to state 66
     Type             go to state 67
-    id               go to state 26
 
 
 State 39
@@ -676,7 +668,7 @@ State 43
 
 State 44
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH . LBRACE StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH . LBRACE StatementList RBRACE RBRACE
 
     LBRACE  shift, and go to state 70
 
@@ -803,10 +795,9 @@ State 52
    65 ExpOp: NEW . Type LBRACK IndexList
 
     WORD       shift, and go to state 75
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     Type  go to state 76
-    id    go to state 26
 
 
 State 53
@@ -970,7 +961,7 @@ State 69
 
 State 70
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE . StatementList RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE . StatementList RBRACE RBRACE
 
     LBRACE     shift, and go to state 98
     LPARENTH   shift, and go to state 99
@@ -982,7 +973,7 @@ State 70
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 30 (StatementList)
 
@@ -993,7 +984,6 @@ State 70
     LeftValue      go to state 111
     NewFunc        go to state 112
     LeftValue2     go to state 113
-    id             go to state 26
 
 
 State 71
@@ -1042,12 +1032,14 @@ State 74
 
 State 75
 
+   26 Type: WORD . BracketsList
    48 NewFunc: NEW WORD . LPARENTH RPARENTH
-   86 id: WORD .
 
     LPARENTH  shift, and go to state 115
 
-    $default  reduce using rule 86 (id)
+    $default  reduce using rule 28 (BracketsList)
+
+    BracketsList  go to state 29
 
 
 State 76
@@ -1499,7 +1491,7 @@ State 98
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 30 (StatementList)
 
@@ -1510,12 +1502,11 @@ State 98
     LeftValue      go to state 111
     NewFunc        go to state 112
     LeftValue2     go to state 113
-    id             go to state 26
 
 
 State 99
 
-   51 LeftValue2: LPARENTH . NewFunc RPARENTH DOT id
+   51 LeftValue2: LPARENTH . NewFunc RPARENTH DOT WORD
 
     NEW  shift, and go to state 104
 
@@ -1585,12 +1576,14 @@ State 105
 
 State 106
 
+   26 Type: WORD . BracketsList
    43 LeftValue: WORD .
-   86 id: WORD .
 
-    BRACKETS  reduce using rule 86 (id)
-    WORD      reduce using rule 86 (id)
+    BRACKETS  reduce using rule 28 (BracketsList)
+    WORD      reduce using rule 28 (BracketsList)
     $default  reduce using rule 43 (LeftValue)
+
+    BracketsList  go to state 29
 
 
 State 107
@@ -1602,7 +1595,7 @@ State 107
 
 State 108
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList . RBRACE RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList . RBRACE RBRACE
 
     RBRACE  shift, and go to state 151
 
@@ -1621,7 +1614,7 @@ State 109
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 30 (StatementList)
 
@@ -1632,7 +1625,6 @@ State 109
     LeftValue      go to state 111
     NewFunc        go to state 112
     LeftValue2     go to state 113
-    id             go to state 26
 
 
 State 110
@@ -1667,7 +1659,7 @@ State 113
 
    38 Statement: LeftValue2 . EQUAL Exp SEMICOLON
    49 LeftValue2: LeftValue2 . LBRACK Index
-   50           | LeftValue2 . DOT id
+   50           | LeftValue2 . DOT WORD
 
     EQUAL   shift, and go to state 156
     LBRACK  shift, and go to state 157
@@ -1985,7 +1977,7 @@ State 139
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     $default  reduce using rule 30 (StatementList)
 
@@ -1996,19 +1988,17 @@ State 139
     LeftValue      go to state 111
     NewFunc        go to state 112
     LeftValue2     go to state 113
-    id             go to state 26
 
 
 State 140
 
    24 FormalList: Type WORD COMMA . FormalList
 
-    WORD       shift, and go to state 4
-    PRIMETYPE  shift, and go to state 22
+    WORD       shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     FormalList  go to state 167
     Type        go to state 67
-    id          go to state 26
 
 
 State 141
@@ -2027,7 +2017,7 @@ State 142
 
 State 143
 
-   51 LeftValue2: LPARENTH NewFunc . RPARENTH DOT id
+   51 LeftValue2: LPARENTH NewFunc . RPARENTH DOT WORD
 
     RPARENTH  shift, and go to state 169
 
@@ -2181,7 +2171,7 @@ State 150
 
 State 151
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE . RBRACE
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE . RBRACE
 
     RBRACE  shift, and go to state 176
 
@@ -2288,11 +2278,9 @@ State 157
 
 State 158
 
-   50 LeftValue2: LeftValue2 DOT . id
+   50 LeftValue2: LeftValue2 DOT . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 180
+    WORD  shift, and go to state 180
 
 
 State 159
@@ -2390,7 +2378,7 @@ State 168
 
 State 169
 
-   51 LeftValue2: LPARENTH NewFunc RPARENTH . DOT id
+   51 LeftValue2: LPARENTH NewFunc RPARENTH . DOT WORD
 
     DOT  shift, and go to state 184
 
@@ -2503,7 +2491,7 @@ State 175
 
 State 176
 
-    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE .
+    2 MainClass: CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE .
 
     $default  reduce using rule 2 (MainClass)
 
@@ -2563,7 +2551,7 @@ State 179
 
 State 180
 
-   50 LeftValue2: LeftValue2 DOT id .
+   50 LeftValue2: LeftValue2 DOT WORD .
 
     $default  reduce using rule 50 (LeftValue2)
 
@@ -2612,11 +2600,9 @@ State 183
 
 State 184
 
-   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT . id
+   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT . WORD
 
-    WORD  shift, and go to state 4
-
-    id  go to state 192
+    WORD  shift, and go to state 192
 
 
 State 185
@@ -2633,7 +2619,7 @@ State 185
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     Type        go to state 107
     Statement   go to state 193
@@ -2641,7 +2627,6 @@ State 185
     LeftValue   go to state 111
     NewFunc     go to state 112
     LeftValue2  go to state 113
-    id          go to state 26
 
 
 State 186
@@ -2658,7 +2643,7 @@ State 186
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     Type        go to state 107
     Statement   go to state 194
@@ -2666,7 +2651,6 @@ State 186
     LeftValue   go to state 111
     NewFunc     go to state 112
     LeftValue2  go to state 113
-    id          go to state 26
 
 
 State 187
@@ -2706,7 +2690,7 @@ State 191
 
 State 192
 
-   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT id .
+   51 LeftValue2: LPARENTH NewFunc RPARENTH DOT WORD .
 
     $default  reduce using rule 51 (LeftValue2)
 
@@ -2753,7 +2737,7 @@ State 197
     THIS       shift, and go to state 53
     RETURN     shift, and go to state 105
     WORD       shift, and go to state 106
-    PRIMETYPE  shift, and go to state 22
+    PRIMETYPE  shift, and go to state 23
 
     Type        go to state 107
     Statement   go to state 198
@@ -2761,7 +2745,6 @@ State 197
     LeftValue   go to state 111
     NewFunc     go to state 112
     LeftValue2  go to state 113
-    id          go to state 26
 
 
 State 198

@@ -15,11 +15,17 @@ struct nonTerm* solveAst(struct ast*);
 struct astList;
 struct strArr;
 struct statement;
+struct classEntry;
+struct sym;
 
+int checkBool = 1;
+int checking = 1;
+char* inpName;
 
 void typeViolation(int lineno){
+	checkBool = 0;
 	printf("Type Violation in Line %d\n", lineno);
-	exit(1);
+	//exit(1);
 }
 
 typedef enum varType{			//variable types
@@ -34,6 +40,7 @@ typedef enum varType{			//variable types
 
 typedef struct arrType{			//extension of varType for arrays
 	varType type;
+	char* class;
 	int deg;
 } arrType;
 
@@ -97,14 +104,6 @@ typedef struct classLinkList{
 	struct classLinkList* next;
 } classLinkList;
 
-typedef struct classRef {
-	char* name;
-	union sub{
-		struct statement* list;	//method of class
-		nonTerm* var;		//variable or subclass of class
-	} sub;
-} classRef;
-
 typedef struct strArr {			//stores array variable
 	char* str;
 	astList* num;
@@ -118,10 +117,14 @@ typedef struct symbol {			//entry to symbol table
 	ast* tree;
 } sym;
 
+typedef struct classRef {
+	char* name;
+	sym* table;		//symbol table stack
+} classRef;
+
 typedef struct symStack {		//symbol table stack for accessing classes
 	sym* table;
 	sym* tableTail;
-	struct symStack* next;
 	struct symStack* prev;
 } symStack;
 
@@ -143,6 +146,7 @@ typedef struct varMethodList {
 
 typedef struct classEntry {
 	char* name;
+	char* parent;
 	varMethodList* list;
 } classEntry;
 
@@ -175,6 +179,7 @@ typedef struct statement {		//Executable command list
 	sym* varDecl;
 	struct statement* next;
 	int lineno;
+	int formalListBool;
 } statement;
 
 
@@ -186,9 +191,14 @@ statement* temp;
 classList* classes;
 classList* classesTail;
 classEntry* currentClass;
+char** mainArgs;
 int line = 0;
 
 nonTerm* execStatement(statement*);
+classEntry* classSearch(char*);
+statement* declArgs(classEntry*);
+void pushTable(classEntry*);
+void popTable();
 
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
@@ -216,7 +226,8 @@ nonTerm* mkNonTerm(int type, void* val){
 			break;
 		case CLASSy:
 			term->value.class = malloc(sizeof(classRef));
-			term->value.class->name = (char*)val;
+			term->value.class->name = ((strArr*)val)->str;
+			
 		}
 	}
 	return term;
@@ -291,9 +302,9 @@ void pushTable(classEntry* class){			//pushes new symbol table
 	if(table==NULL){
 		table = thisTable;
 	} else{ 
+		table->tableTail = tail;
 		thisTable->prev = table;
-		table->next = thisTable;
-		table = table->next;
+		table = thisTable;
 	}
 	head = table->table;
 	tail = table->tableTail;
@@ -301,10 +312,11 @@ void pushTable(classEntry* class){			//pushes new symbol table
 
 void popTable(){
 	table = table->prev;			//there should always be parent table
-	head = table->table;
+	//memcpy(head, table->table, sizeof(sym));
+	//memcpy(tail, table->tableTail, sizeof(sym));
 	tail = table->tableTail;
-	
-	//need to free
+	head = table->table;
+	//need to free...	maybe someday
 }
 
 void insert(varType type, char* name){
@@ -345,8 +357,7 @@ classEntry* classSearch(char* name){
 	return NULL;	
 }
 
-methodList* methodSearch(char* className, char* methodName){
-	classEntry* class = classSearch(className);
+methodList* methodSearch(classEntry* class, char* methodName){
 	if(class==NULL)	//class not found
 		typeViolation(line);
 
@@ -355,6 +366,9 @@ methodList* methodSearch(char* className, char* methodName){
 		if(!strcmp(methodName, current->name))
 			return current;
 		current = current->next;
+	}
+	if(class->parent!=NULL&&classSearch(class->parent)!=NULL){
+			return methodSearch(classSearch(class->parent), methodName);	
 	}
 	return NULL;
 	
@@ -374,12 +388,16 @@ statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftV
 }
 
 statement* initArgs(sym* list, sym* input){			//do type checks! ***
+		
 	statement* current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, list);
+	current->formalListBool=1;
 	statement* stateHead = current;
 	sym* itr = list;
 	while(input!=NULL&&itr!=NULL){	
 		strArr* this = malloc(sizeof(strArr));
 		this->str = itr->name;
+		if(this->str==NULL||input->term==NULL)
+			return NULL;
 		current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
 		current = current->next;
 		input = input->next;
@@ -391,7 +409,60 @@ statement* initArgs(sym* list, sym* input){			//do type checks! ***
 	//statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
 }
 
+statement* declArgs(classEntry* class){
+	sym* list = class->list->table;
+	statement* current = NULL;
+	if(list!=NULL) {
+		sym* temp = malloc(sizeof(ast));
+		memcpy((void*)temp, (void*)list, sizeof(sym));
+		temp->term = malloc(sizeof(nonTerm));	
+		memcpy((void*)temp->term, (void*)list->term, sizeof(sym));
+		current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, temp);
+		temp->term->arrType=NULL;
+		current->formalListBool=1;
+	}
+
+	if(class->parent!=NULL&&classSearch(class->parent)!=NULL){
+		if(current == NULL)
+			current = declArgs(classSearch(class->parent));
+		else
+			current->next = declArgs(classSearch(class->parent));
+	}
+
+	return current;
+}
+
+void initInputArgs(char* name){
+	astList* deg = malloc(sizeof(astList));
+	int* hundert = malloc(sizeof(int));
+	*hundert = 100;
+	deg->num = mkLeaf(mkNonTerm(INT, hundert));
+	sym* inputArgs;
+	sym* inpHead;
+	char** itr = mainArgs;
+
+	insert(ARR, name);	
+	nonTerm* arr = mkNonTermArr(STRING, deg);
+	search(name)->term = arr;
+	
+	int x=0;
+	while(itr[x]!=NULL){
+		//inputArgs = malloc(sizeof(sym));
+		//inputArgs->tree = mkLeaf(mkNonTerm(STRING, itr));
+		//if(inpHead==NULL)
+		//	inpHead = inputArgs;
+		//inputArgs = inputArgs->next;
+		//memcpy((void*)searchNonTermArr(search(name)->term, x), mkNonTerm(STRING, itr), sizeof(nonTerm));
+		memcpy(search(name)->term->value.arr[x], mkNonTerm(STRING, itr[x]), sizeof(nonTerm));
+		x++;
+		itr++;
+	}
+
+}
+
 void printExp(nonTerm* term, int nline){
+	if(checking)	//don't you dare!
+		return;
 	switch(term->type){
 	case STRING:		//String
 		if(nline)
@@ -406,14 +477,26 @@ void printExp(nonTerm* term, int nline){
 			printf("%d", term->value.num);
 		break;
 	case BOOL:
-		if(nline)
-			printf("%d\n", term->value.num);
-		else	
-			printf("%d", term->value.num);
+		if(term->value.num){
+			if(nline)
+				printf("true\n");
+			else	
+				printf("true", term->value.num);
+		} else {
+			if(nline)
+				printf("false\n");
+			else	
+				printf("false", term->value.num);
+		}
 		break;
 	case ARR:
 		printf("uhh\n");
-		typeViolation(line);	
+		typeViolation(line);
+		break;
+	case CLASSy:
+		printf("ya");		
+	default:
+		typeViolation(line);
 	}
 }
 
@@ -422,9 +505,19 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		if (tree->isVar){	//var
 			if(tree->str->class!=NULL){		//class shenanigans
 				//gotta convert input to terms with solveAst!!
-				if(tree->str->str==NULL)
+				if(tree->str->str==NULL)		//THIS
 					tree->str->str = currentClass->name;
-				methodList* method = methodSearch(tree->str->str, tree->str->class->name);
+
+				classEntry* thisClass = classSearch(tree->str->str);
+				if(thisClass==NULL){
+					return NULL;
+				}
+
+				
+				methodList* method = methodSearch(thisClass, tree->str->class->name);
+				if(method==NULL){
+					return NULL;
+				}
 				statement* statementList = method->statementList;
 				astList* input = tree->str->class->exp;
 				sym* formInput = malloc(sizeof(sym));
@@ -436,19 +529,35 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 					input = input->next;
 				}	
 				statement* init = NULL;
-				if(method->arg!=NULL&&formhead!=NULL)
+				if(method->arg!=NULL&&formhead!=NULL){
 					init = initArgs(method->arg, formhead);	//input declarations
+					if(init==NULL){
+						return NULL;
+					}
+				}
+				statement* args = NULL;
+				args = declArgs(thisClass);
+				
 
 				pushTable(classSearch(tree->str->str));
 				if(statementList==NULL)
 					typeViolation(line);
 				if(init!=NULL)
 					execStatement(init);
+				if(args!=NULL)
+					execStatement(args);
 				nonTerm* ret = execStatement(statementList);
 				popTable();
+				if(ret==NULL){
+					return NULL;
+				}
 				return ret;
 			}
-
+		
+			if(search(tree->str->str)==NULL){
+				typeViolation(line);
+				return NULL;
+			}	
 			tree->node.leaf =  search(tree->str->str)->term;
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
@@ -458,7 +567,10 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	} else {
 		nonTerm* term1 = solveAst(tree->node1);
 		nonTerm* term2 = solveAst(tree->node2);
-		if(term1->type!=term2->type)
+		if(term1==NULL){
+			return NULL;
+		}
+		if(term2!=NULL&&term1->type!=term2->type)
 			typeViolation(line);
 	
 		switch(term1->type){
@@ -508,7 +620,6 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				return mkNonTerm(BOOL, &res);
 				break;
 			default:
-				printf("invalid int operation %d\n", term1->type );
 				typeViolation(line);
 			}
 		break;
@@ -544,13 +655,17 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			char* val1 = term1->value.str;
 			char* val2 = term2->value.str;
 			char* res;
+			if(val1==NULL){
+				typeViolation(line);
+				return NULL;
+			}
 			switch(tree->node.op){
 			case PLUSy:
 				res = malloc(sizeof(char)*1000);		//lol
 				strcpy(res, val1);
 				strcat(res, val2);
-				free(val1);
-				free(val2);	
+				//free(val1);
+				//free(val2);	
 				return mkNonTerm(STRING, res);
 				break;
 			case PARSEINTy:{
@@ -560,14 +675,15 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				break;
 			}
 			default:
-				printf("invalid string operation %d\n", term1->type );
 				typeViolation(line);
 			}
 		}
 		case ARR:
 			return mkNonTerm(ARR, tree->node.leaf);
+			break;
+		case CLASSy:
+			return mkNonTerm(CLASSy, tree->node.leaf);
 		default:
-			printf("type %d not implemented in ast\n", term1->type);
 			typeViolation(line);
 		}
 	}
@@ -582,6 +698,10 @@ nonTerm* execStatement(statement* statem){
 		memcpy((void*)check, (void*)statem->varDecl, sizeof(sym));
 		check->name = statem->word1;
 		arrType* thisType = statem->type;
+
+		if(thisType==NULL||check==NULL)
+			typeViolation(line);
+
 		while(check!=NULL){
 			if(check->term==NULL&&check->tree!=NULL)
 				check->term = solveAst(check->tree);
@@ -594,37 +714,71 @@ nonTerm* execStatement(statement* statem){
 
 							//uhh let's skip the check for now
 
-						} else {
-							printf("Incompatible types\n");
+						} else if(!statem->formalListBool) {
 							typeViolation(line);		
+						} else if(thisType->type==CLASSy){
+							printf("uh oh\n");
 						} 
 					}
-					insert(thisType->type, check->name);
+
+					if(thisType->type==CLASSy){
+						if(classSearch(check->term->value.class->name)==NULL||
+						  (strcmp(check->term->value.class->name, thisType->class))){
+							typeViolation(line);
+							return NULL;
+						}	
+						statement* init = declArgs(classSearch(check->term->value.class->name));
+						pushTable(NULL);			//creates empty symbol table
+						check->term->value.class->table = head;
+						execStatement(init);
+						popTable();
+					}
+					insert(check->term->type, check->name);
+
 					if(check->term->arrType!=NULL)	//solves for var indexes
 						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
-					
+					if(check->term==NULL){
+						typeViolation(line);
+						break;
+					}
 					search(check->name)->term = check->term;
 				}
 			} else {
 				typeViolation(line);		//Already declared
+				break;
 			}
 			check = check->next;
 		}
 		break;
 	}
 	case PRINTNLINE:{
-		printExp(solveAst(statem->exp), 1);
+		nonTerm* ret = solveAst(statem->exp);
+		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
+			typeViolation(line);
+			break;
+		}
+		printExp(ret, 1);
 		break;		
 	}
-	case PRINTN:
-		printExp(solveAst(statem->exp), 0);
+	case PRINTN:{
+		nonTerm* ret = solveAst(statem->exp);
+		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
+			typeViolation(line);
+			break;
+		}
+		printExp(ret, 0);
 		break;		
+	}
 	case INIT:{		
 		sym* head = search(statem->leftVal->str);
+		if(head==NULL){
+			typeViolation(line);
+			break;
+		}
 		if(head->term->arrType!=NULL)				//solves for var indexes
 			head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
 					
-
+		
 		memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));			//copies exp to the symbol table pointer
 
 		break;
@@ -705,6 +859,7 @@ int main(int argc, char** argv){
 		printf("invalid filename\n");
 		exit(1);
 	}
+	mainArgs = argv+2;
 	yyin = file;
 	yyparse();
 	//free(head->term);
@@ -720,6 +875,8 @@ int main(int argc, char** argv){
 %code requires{
 
 	struct astListY;
+	struct classEntryY;
+	struct symY;
 
 	typedef enum varTypeY{
 		UNDECY 		= -1,
@@ -733,6 +890,7 @@ int main(int argc, char** argv){
 
 	typedef struct arrTypeY{
 		varTypeY type;
+		char* class;
 		int deg;
 	} arrTypeY;
 
@@ -773,14 +931,6 @@ int main(int argc, char** argv){
 		nonTermY** term;
 	} nonTermArrY;
 
-	typedef struct classRefY {
-		char* name;
-		union subY{
-			struct statementY* list;
-			nonTermY* var;
-		} sub;
-	} classRefY;
-
 	struct strArrY;
 
 	typedef struct astY {
@@ -819,6 +969,11 @@ int main(int argc, char** argv){
 		astY* tree;
 	} symY;
 
+	typedef struct classRefY {
+		char* name;
+		symY* table;
+	} classRefY;
+
 
 	typedef struct methodListY {
 		char* name;
@@ -835,6 +990,7 @@ int main(int argc, char** argv){
 
 	typedef struct classEntryY {
 		char* name;
+		char* parent;
 		varMethodListY* list;
 	} classEntryY;
 
@@ -887,6 +1043,7 @@ int main(int argc, char** argv){
 
 %token<str> WORD STRING_LITERAL PRIMETYPE
 %token<num> INTEGER_LITERAL
+%type<str> Parent ParentMaybe
 %type<strarr> LeftValue LeftValue2 NewFunc MethodCall
 %type<num> BracketsList 
 %type<numList> IndexList ExpList
@@ -906,11 +1063,19 @@ int main(int argc, char** argv){
 Program:	
 	MainClass ClassDeclList {
 		execStatement((statement*)$1);
+		pushTable(NULL);
+		checking = 0;
+		if(checkBool){
+			initInputArgs(inpName);
+			execStatement((statement*)$1);
+		}
 	}
 	;
 
 MainClass:
-	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS id RPARENTH LBRACE StatementList RBRACE RBRACE {
+	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE {
+		inpName = $8;
+		initInputArgs($8);
 		$$ = $11;
 	}
 	;
@@ -927,32 +1092,56 @@ ClassDecl:
 		classEntryY* class = malloc(sizeof(classEntryY));
 		class->list = $5;
 		class->name = $2;
+		class->parent = $3;
 		$$ = class;
 	}
 	;
 
 ParentMaybe:
-	Parent
-	| /*empty*/
+	Parent {
+		$$ = $1;
+	}
+	| /*empty*/ {
+		$$ = NULL;
+	}
 	;
 
 Parent:
-	EXTENDS id
+	EXTENDS WORD {
+		$$ = $2;
+	}
 	;
 
 VarMethodDeclList:
 	VarOrMethod VarMethodDeclList	{
-		$1->methods->next = $2->methods;
+		if($2!=NULL){
+			if($1->methods==NULL)
+				$1->methods = $2->methods;
+			else if($2->methods!=NULL)
+				$1->methods->next = $2->methods;
+			if($1->table==NULL)
+				$1->table = $2->table;
+			else if($2->table!=NULL)
+				$1->table->next = $2->table;
+		}
 		$$ = $1;	
 	}
-	| /*empty*/	{}
+	| /*empty*/	{
+		$$ = NULL;		
+	}
 	;
 
 VarOrMethod:
 	Type WORD VarMethodDecl		{				//no vars yet
 		if($3->methods==NULL){		//declare vars
 			//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
+			if($3->table->tree!=NULL)
+				$3->table->term = (nonTermY*)solveAst((ast*)$3->table->tree);
+			else
+				$3->table->term = malloc(sizeof(nonTerm));
+			$3->table->next = NULL;
 			$3->table->term->arrType = $1;		//arrays dont work	
+			$3->table->name = $2;
 		} else {			//method
 			$3->methods->type = $1;
 			$3->methods->name = $2;
@@ -1055,12 +1244,16 @@ FormalList:
 	}
 
 Type:
-	PRIMETYPE BracketsList			{
+	PRIMETYPE BracketsList {
 		$$ = malloc(sizeof(arrTypeY));
 		$$->type = setType($1);
 		$$->deg = $2;
 	}
-	| id BracketsList			{}
+	| WORD BracketsList{
+		$$ = malloc(sizeof(arrTypeY));
+		$$->type = CLASSy;
+		$$->class = $1;
+	}
 
 BracketsList:
 	BracketsList BRACKETS			{$$++;} 
@@ -1127,7 +1320,7 @@ Statement:
 
 
 MethodCall:
-	LeftValue LPARENTH ExpList RPARENTH			{
+	LeftValue LPARENTH ExpList RPARENTH {
 		strArrY* this = $1;
 		//symY* this2 = $3;
 
@@ -1140,13 +1333,13 @@ MethodCall:
 		$$ = $1;
 	
 	}
-	| LeftValue LPARENTH RPARENTH				{
+	| LeftValue LPARENTH RPARENTH {
 		$$ = $1;
 	}
 	;
 
 LeftValue:
-	WORD				{
+	WORD {
 		//if(search($1)!=NULL)
 			strArrY* this = malloc(sizeof(strArrY));
 			this->str = $1;
@@ -1155,7 +1348,7 @@ LeftValue:
 		//else
 		//	typeViolation();
 	}
-	| LeftValue LBRACK Index 	{
+	| LeftValue LBRACK Index {
 		if($1->num == NULL){		//first deg of array
 			$1->num = malloc(sizeof(astListY));
 			$1->num->num = $3;
@@ -1171,7 +1364,7 @@ LeftValue:
 		}
 		$$ = $1;
 	}
-	| LeftValue DOT WORD		{
+	| LeftValue DOT WORD {
 		if($1->class == NULL){		//first deg of array
 			$1->class = malloc(sizeof(classLinkListY));
 			$1->class->name = $3;
@@ -1186,15 +1379,14 @@ LeftValue:
 	
 		}
 		$$ = $1;
-		printf("zobbles!\n");
 	}
-	| NewFunc DOT WORD		{
+	| NewFunc DOT WORD {
 		char* str = $3;
 		$1->class = malloc(sizeof(classLinkListY));
 		$1->class->name = $3;
 		$$ = $1;
 	}
-	| THIS DOT WORD			{
+	| THIS DOT WORD	{
 		char* str = $3;
 		strArrY* this = malloc(sizeof(strArrY));
 		
@@ -1206,7 +1398,7 @@ LeftValue:
 	;
 
 NewFunc:
-	NEW WORD LPARENTH RPARENTH	{
+	NEW WORD LPARENTH RPARENTH {
 		strArrY* this = malloc(sizeof(strArrY));
 		this->str = $2;
 		$$ = this;
@@ -1214,9 +1406,45 @@ NewFunc:
 	;
 
 LeftValue2:	
-	LeftValue2 LBRACK Index
-	| LeftValue2 DOT id
-	| LPARENTH NewFunc RPARENTH DOT id	{}					//dunno what to do with this
+	LeftValue2 LBRACK Index {
+		if($1->num == NULL){		//first deg of array
+			$1->num = malloc(sizeof(astListY));
+			$1->num->num = $3;
+		} else {
+
+		astListY* current = $1->num;
+		while(current->next!=NULL)
+			current = current->next;	//points to tail
+
+		current->next = malloc(sizeof(astListY));
+		current->next->num = $3;
+	
+		}
+		$$ = $1;
+	}
+	| LeftValue2 DOT WORD {
+		if($1->class == NULL){		//first deg of array
+			$1->class = malloc(sizeof(classLinkListY));
+			$1->class->name = $3;
+		} else {
+
+		classLinkListY* current = $1->class;
+		while(current->next!=NULL)
+			current = current->next;	//points to tail
+
+		current->next = malloc(sizeof(classLinkListY));
+		current->next->name = $3;
+	
+		}
+		$$ = $1;
+	}
+	| LPARENTH NewFunc RPARENTH DOT WORD {
+		char* str = $5;
+		$2->class = malloc(sizeof(classLinkListY));
+		$2->class->name = $5;
+		$$ = $2;
+
+	}					//dunno what to do with this
 	;
 
 IndexList:				//returns list of ints to define array
@@ -1276,11 +1504,11 @@ ExpOp:
 		}	
 	}
 	| NewFunc {
+		$$ = (astY*)mkLeaf(mkNonTerm(CLASSY, $1));
 	}
 	| NEW Type LBRACK IndexList {		//CREATE ENTIRE ARRAY USING LIST OF INT
 		$$ = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (astList*)$4));
 		$$->node.leaf->arrType = $2;
-
 	}
 	| LeftValue {
 		if($1!=NULL){

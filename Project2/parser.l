@@ -21,7 +21,7 @@ void replace(char* s, char* sub, char rep){	//replaces a substr with a char
 \r	//Removes carriages from test file
 "//"[^\n]*\n			//Comment
 "/*"([^*]|\*+[^*/])*\*+"/"	/*Comment*/
-\"([^"]|\")*\"			{
+\"([^"]|\\\")*\"			{
 	yylval.str=malloc(yyleng-1); 
 	memcpy(yylval.str, yytext+1, yyleng-2 ); 
 	yylval.str[yyleng-2]='\0'; 
