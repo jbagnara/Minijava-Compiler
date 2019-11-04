@@ -120,6 +120,7 @@ typedef struct symbol {			//entry to symbol table
 typedef struct classRef {
 	char* name;
 	sym* table;		//symbol table stack
+	sym* tableTail;
 } classRef;
 
 typedef struct symStack {		//symbol table stack for accessing classes
@@ -191,14 +192,30 @@ statement* temp;
 classList* classes;
 classList* classesTail;
 classEntry* currentClass;
+classEntry* oldClass;
+sym* currentObj;
+sym* oldObj;
 char** mainArgs;
 int line = 0;
+
+statement* important;
 
 nonTerm* execStatement(statement*);
 classEntry* classSearch(char*);
 statement* declArgs(classEntry*);
-void pushTable(classEntry*);
+void pushTable(sym*);
 void popTable();
+
+void clean(){
+	head = NULL;
+	tail = NULL;
+	table = NULL;
+	temp = NULL;
+	currentClass = NULL;
+	oldClass = NULL;
+	currentObj = NULL;
+	oldObj = NULL;
+}
 
 nonTerm* mkNonTerm(int type, void* val){
 	nonTerm* term = malloc(sizeof(nonTerm));
@@ -290,15 +307,26 @@ void printAst(ast* tree){
 	}
 }
 
-void pushTable(classEntry* class){			//pushes new symbol table
-	currentClass = class;
+void pushTable(sym* classObj){			//pushes new symbol table
+	oldClass=currentClass;
+	oldObj = currentObj;
+	classRef* class;
+	if(classObj!=NULL){
+		class = classObj->term->value.class;
+		currentClass=classSearch(class->name);
+		currentObj=classObj;
+	}
 	symStack* thisTable = malloc(sizeof(symStack));
 
-
-	thisTable->table = malloc(sizeof(sym));	//init sym linkedlist
-	thisTable->table->term = malloc(sizeof(nonTerm));
-	thisTable->tableTail = thisTable->table;
-
+	if(classObj==NULL){
+		thisTable->table = malloc(sizeof(sym));	//init sym linkedlist
+		thisTable->table->term = malloc(sizeof(nonTerm));
+		thisTable->tableTail = thisTable->table;
+	} else {
+		thisTable->table = class->table;
+		thisTable->tableTail = class->tableTail;
+	}
+	
 	if(table==NULL){
 		table = thisTable;
 	} else{ 
@@ -308,9 +336,12 @@ void pushTable(classEntry* class){			//pushes new symbol table
 	}
 	head = table->table;
 	tail = table->tableTail;
+	tail->next = NULL;
 }
 
 void popTable(){
+	currentClass=oldClass;
+	currentObj = oldObj;
 	table = table->prev;			//there should always be parent table
 	//memcpy(head, table->table, sizeof(sym));
 	//memcpy(tail, table->tableTail, sizeof(sym));
@@ -481,12 +512,12 @@ void printExp(nonTerm* term, int nline){
 			if(nline)
 				printf("true\n");
 			else	
-				printf("true", term->value.num);
+				printf("true");
 		} else {
 			if(nline)
 				printf("false\n");
 			else	
-				printf("false", term->value.num);
+				printf("false");
 		}
 		break;
 	case ARR:
@@ -504,15 +535,37 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
 		if (tree->isVar){	//var
 			if(tree->str->class!=NULL){		//class shenanigans
+				if(checking&&currentClass!=NULL)
+					return mkNonTerm(INT, NULL);
+				int objBool = 0;
+				
 				//gotta convert input to terms with solveAst!!
-				if(tree->str->str==NULL)		//THIS
-					tree->str->str = currentClass->name;
-
-				classEntry* thisClass = classSearch(tree->str->str);
-				if(thisClass==NULL){
-					return NULL;
+				if(tree->str->str==NULL){		//THIS
+					if(currentObj==NULL)
+						tree->str->str = currentClass->name;
+					else
+						tree->str->str = currentObj->name;
 				}
 
+				sym* obj;
+				classEntry* thisClass = classSearch(tree->str->str);
+				if(thisClass==NULL){
+					if(search(tree->str->str)!=NULL){		//object of class
+						if(checking)		//donnt want that
+							return NULL;
+						obj = search(tree->str->str);
+						thisClass = classSearch(obj->term->value.class->name);
+						objBool = 1;
+					} else if (!strcmp(tree->str->str, currentObj->name)){
+						obj = currentObj;
+						thisClass = classSearch(obj->term->value.class->name);
+						objBool = 1;
+						
+					}
+					else
+						return NULL;
+				}
+				
 				
 				methodList* method = methodSearch(thisClass, tree->str->class->name);
 				if(method==NULL){
@@ -538,14 +591,20 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				statement* args = NULL;
 				args = declArgs(thisClass);
 				
-
-				pushTable(classSearch(tree->str->str));
 				if(statementList==NULL)
 					typeViolation(line);
+
+				if(objBool){
+					pushTable(obj);
+				}
+				else {
+					pushTable(NULL);
+					currentClass = thisClass;
+					if(args!=NULL)
+						execStatement(args);
+				}
 				if(init!=NULL)
 					execStatement(init);
-				if(args!=NULL)
-					execStatement(args);
 				nonTerm* ret = execStatement(statementList);
 				popTable();
 				if(ret==NULL){
@@ -564,15 +623,17 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			} 
 		}
 		return tree->node.leaf;
-	} else {
+	} else {	
 		nonTerm* term1 = solveAst(tree->node1);
 		nonTerm* term2 = solveAst(tree->node2);
 		if(term1==NULL){
 			return NULL;
 		}
 		if(term2!=NULL&&term1->type!=term2->type)
-			typeViolation(line);
-	
+			return NULL;
+		if(checking)
+			return term1;
+
 		switch(term1->type){
 		case INT:{
 			int val1 = term1->value.num;
@@ -669,6 +730,8 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				return mkNonTerm(STRING, res);
 				break;
 			case PARSEINTy:{
+				if(checking)
+					break;
 				int* ret = malloc(sizeof(int));
 				*ret = atoi(val1);	
 				return mkNonTerm(INT, ret);
@@ -677,6 +740,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			default:
 				typeViolation(line);
 			}
+		break;
 		}
 		case ARR:
 			return mkNonTerm(ARR, tree->node.leaf);
@@ -711,13 +775,26 @@ nonTerm* execStatement(statement* statem){
 				} else{
 					if(check->term->type!=thisType->type){		//Different type
 						if(thisType->deg>1){	//Is ARR, need to check type
-
-							//uhh let's skip the check for now
+							if (thisType->type!=check->term->arrType->type) {
+								typeViolation(line);
+								check = check->next;
+								continue;		
+							}
 
 						} else if(!statem->formalListBool) {
-							typeViolation(line);		
+							if(checking&&check->tree->node.op==PARSEINTy){
+								if(check->tree->node1->node.leaf->value.str==NULL)
+									typeViolation(line);
+								insert(INT, check->name);
+								break;	
+							}
+							typeViolation(line);
+							check = check->next;
+							continue;		
 						} else if(thisType->type==CLASSy){
-							printf("uh oh\n");
+							typeViolation(line);
+							check = check->next;
+							continue;		
 						} 
 					}
 
@@ -731,6 +808,7 @@ nonTerm* execStatement(statement* statem){
 						pushTable(NULL);			//creates empty symbol table
 						check->term->value.class->table = head;
 						execStatement(init);
+						check->term->value.class->tableTail = tail;
 						popTable();
 					}
 					insert(check->term->type, check->name);
@@ -739,7 +817,8 @@ nonTerm* execStatement(statement* statem){
 						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
 					if(check->term==NULL){
 						typeViolation(line);
-						break;
+						check = check->next;
+						continue;		
 					}
 					search(check->name)->term = check->term;
 				}
@@ -753,6 +832,8 @@ nonTerm* execStatement(statement* statem){
 	}
 	case PRINTNLINE:{
 		nonTerm* ret = solveAst(statem->exp);
+		if(checking)
+			break;
 		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
 			typeViolation(line);
 			break;
@@ -762,6 +843,8 @@ nonTerm* execStatement(statement* statem){
 	}
 	case PRINTN:{
 		nonTerm* ret = solveAst(statem->exp);
+		if(checking)
+			break;
 		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
 			typeViolation(line);
 			break;
@@ -784,11 +867,22 @@ nonTerm* execStatement(statement* statem){
 		break;
 	}
 	case WHILEN:{
+		if(checking){
+			execStatement(statem->sub1);
+			break;
+		}
+
 		while(solveAst(statem->conditional)->value.num)
 			execStatement(statem->sub1);
 		break;
 	}
 	case IFELSE:{
+		if(checking){
+			execStatement(statem->sub1);
+			execStatement(statem->sub2);
+			break;	
+		}
+
 		if(solveAst(statem->conditional)->value.num)
 			execStatement(statem->sub1);
 		else
@@ -972,6 +1066,7 @@ int main(int argc, char** argv){
 	typedef struct classRefY {
 		char* name;
 		symY* table;
+		symY* tableTail;
 	} classRefY;
 
 
@@ -1063,6 +1158,7 @@ int main(int argc, char** argv){
 Program:	
 	MainClass ClassDeclList {
 		execStatement((statement*)$1);
+		clean();
 		pushTable(NULL);
 		checking = 0;
 		if(checkBool){

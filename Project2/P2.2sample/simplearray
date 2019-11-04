@@ -1,9 +1,10 @@
 class simplearray {
     public static void main(String [] args) {
         int i_size = 7, j_size=7;
-        int[][] Arr2D;
+        int[][] Arr2D; 
 	Arr2D = new int[7][7];
         int i=0, j=0;
+			System.out.println(i+j);
         while (i < i_size) {
                 System.out.print("i equals ");
                 System.out.println(i);
