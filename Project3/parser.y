@@ -11,7 +11,7 @@ extern int yylex();
 
 struct nonTerm;
 struct ast;
-struct nonTerm* solveAst(struct ast*);
+struct nonTerm* solveAst(struct ast*, int side);
 struct astList;
 struct strArr;
 struct statement;
@@ -24,6 +24,7 @@ int buffindex = 0;
 int checkBool = 1;
 int checking = 1;
 char* inpName;
+int argnum = 0;
 
 void typeViolation(int lineno){
 	checkBool = 0;
@@ -220,7 +221,9 @@ void clean(){
 	oldObj = NULL;
 }
 
-void writeBuff(char* inp){
+void writeBuff(char* inp, int check){
+	if(check)
+		return;
 	char c = *inp;
 	while(c!='\0'){
 		buffer[buffindex] = c;
@@ -284,9 +287,9 @@ nonTerm* searchNonTermArr(nonTerm* arr, astList* num){
 	if(num==NULL)
 		return arr;
 	if(num->next==NULL){
-		return arr->value.arr[solveAst(num->num)->value.num];
+		return arr->value.arr[solveAst(num->num, 0)->value.num];
 	}
-	return searchNonTermArr(arr->value.arr[solveAst(num->num)->value.num], num->next);
+	return searchNonTermArr(arr->value.arr[solveAst(num->num, 0)->value.num], num->next);
 }
 
 nonTerm* mkNonTermArr(int type, astList* list){	//builds array given dimensions
@@ -294,8 +297,8 @@ nonTerm* mkNonTermArr(int type, astList* list){	//builds array given dimensions
 		return mkNonTerm(type, NULL);		//leaf
 	}
 
-	nonTerm* arr = mkNonTerm(ARR, &solveAst(list->num)->value.num);
-	for(int x=0; x<solveAst(list->num)->value.num; x++){
+	nonTerm* arr = mkNonTerm(ARR, &solveAst(list->num, 0)->value.num);
+	for(int x=0; x<solveAst(list->num, 0)->value.num; x++){
 		arr->value.arr[x] = mkNonTermArr(type, list->next);
 	}
 	return arr;
@@ -388,6 +391,26 @@ void insert(varType type, char* name){
 	//strcpy(tail->name, name);
 	tail->term->type = type;
 	//tail->value = value;
+
+	writeBuff(name, !checking);
+	switch(type){
+	case INT: {
+		writeBuff(": .word 0\n", !checking);
+		break;	
+	}
+	case STRING: {
+		writeBuff(": .asciz ""\n", !checking);	
+		break;
+	}
+	case ARR: {
+		writeBuff(": .word 0\n", !checking);//come back!
+		break;
+	}
+	default: {
+		printf("%d assembler decl not written\n", type);
+		typeViolation(line);
+	}}
+
 }
 
 sym* search(char* name){
@@ -496,7 +519,7 @@ statement* declArgs(classEntry* class){
 void initInputArgs(char* name){
 	astList* deg = malloc(sizeof(astList));
 	int* hundert = malloc(sizeof(int));
-	*hundert = 100;
+	*hundert = argnum;
 	deg->num = mkLeaf(mkNonTerm(INT, hundert));
 	sym* inputArgs;
 	sym* inpHead;
@@ -532,8 +555,12 @@ void printExp(nonTerm* term, int nline){
 			printf("%s", term->value.str);
 		break;
 	case INT:		//int
-		if(nline)
-			printf("%d\n", term->value.num);
+		if(nline){
+			writeBuff("\tmov\tr1, r0\n"
+				"\tldr\tr0, =newln\n"
+				"\tbl printf\n",
+				checking);
+		}
 		else	
 			printf("%d", term->value.num);
 		break;
@@ -561,7 +588,7 @@ void printExp(nonTerm* term, int nline){
 	}
 }
 
-nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
+nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 	if(tree->isLeaf){
 		if (tree->isVar){	//var
 			if(tree->str->class!=NULL){		//class shenanigans
@@ -606,7 +633,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				sym* formInput = malloc(sizeof(sym));
 				sym* formhead = formInput;
 				while(input!=NULL){
-					formInput->term = solveAst(input->num);
+					formInput->term = solveAst(input->num, 0);
 					formInput->next = malloc(sizeof(sym));
 					formInput = formInput->next;
 					input = input->next;
@@ -651,11 +678,29 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
 			} 
+			writeBuff("\tLDR\tr4, =", checking);
+			writeBuff(tree->str->str, checking);
+			writeBuff( "\n\tLDR\tr0, [r4]\n", checking);
+			return tree->node.leaf;
 		}
+		char* arg = malloc(sizeof(char)*1000);
+		sprintf(arg, "%d", tree->node.leaf->value.num);
+		writeBuff("\tmov\tr0, #", checking);
+		writeBuff(arg, checking);
+		writeBuff( "\n", checking);
+		free(arg);
+		
 		return tree->node.leaf;
-	} else {	
-		nonTerm* term1 = solveAst(tree->node1);
-		nonTerm* term2 = solveAst(tree->node2);
+	} else {
+
+		nonTerm* term1 = solveAst(tree->node1, 0);
+		writeBuff("\tpush\t{r0}\n", checking);		//push r0	
+		nonTerm* term2 = solveAst(tree->node2, 1);
+		writeBuff("\tmov\tr1, r0\n", checking);
+		writeBuff("\tpop\t{r0}\n", checking);		//push r0	
+		
+		
+
 		if(term1==NULL){
 			return NULL;
 		}
@@ -666,58 +711,37 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 
 		switch(term1->type){
 		case INT:{
-			int val1 = term1->value.num;
-			int val2 = term2->value.num;
 
-			writeBuff("\tLDR\tr4, =");
-			writeBuff( "\n\tLDR\tr0, [r4]\n");
-
-			int res;
 			switch(tree->node.op){
 			case STARy:
-				res = val1*val2;
-				return mkNonTerm(INT, &res);
 				break;
 			case SLASHy:
-				res = val1/val2;
-				return mkNonTerm(INT, &res);
 				break;
 			case PLUSy:
-				res = val1+val2;
-				writeBuff("\tADD\tr0,r0,r1\n");
-				return mkNonTerm(INT, &res);
+				writeBuff("\tadd\tr0, r0, r1\n", checking);
 				break;
 			case MINUSy:
-				res = val1-val2;
-				return mkNonTerm(INT, &res);
 				break;
 			case LESSy:
-				res = val1<val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case GREATy:
-				res = val1>val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case LESSEQy:
-				res = val1<=val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case GREATEQy:
-				res = val1>=val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case EQUIVALENTy:
-				res = val1==val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case NOTEQUALy:
-				res = val1!=val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			default:
 				typeViolation(line);
 			}
+			writeBuff("\tmov\tr4, r0\n", checking);		//push r0, r1	
+			if(side)
+				writeBuff("\tmov\tr1, r4\n", checking);
+			else
+				writeBuff("\tmov\tr0, r4\n", checking);
 		break;
 		}
 		case BOOL:{
@@ -726,20 +750,12 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			int res;
 			switch(tree->node.op){
 			case EQUIVALENTy:
-				res = val1==val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case NOTEQUALy:
-				res = val1!=val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case ANDy:
-				res = val1&&val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			case ORy:
-				res = val1||val2;
-				return mkNonTerm(BOOL, &res);
 				break;
 			default:
 				printf("invalid bool operation %d\n", term1->type );
@@ -757,19 +773,8 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 			}
 			switch(tree->node.op){
 			case PLUSy:
-				res = malloc(sizeof(char)*1000);		//lol
-				strcpy(res, val1);
-				strcat(res, val2);
-				//free(val1);
-				//free(val2);	
-				return mkNonTerm(STRING, res);
 				break;
 			case PARSEINTy:{
-				if(checking)
-					break;
-				int* ret = malloc(sizeof(int));
-				*ret = atoi(val1);	
-				return mkNonTerm(INT, ret);
 				break;
 			}
 			default:
@@ -778,10 +783,8 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		break;
 		}
 		case ARR:
-			return mkNonTerm(ARR, tree->node.leaf);
 			break;
 		case CLASSy:
-			return mkNonTerm(CLASSy, tree->node.leaf);
 		default:
 			typeViolation(line);
 		}
@@ -803,7 +806,7 @@ nonTerm* execStatement(statement* statem){
 
 		while(check!=NULL){
 			if(check->term==NULL&&check->tree!=NULL)
-				check->term = solveAst(check->tree);
+				check->term = solveAst(check->tree, 0);
 			if(search(check->name)==NULL){	//Does not exist in sym table
 				if(check->term==NULL){	//Declared but not initialized
 					insert(thisType->type, check->name);
@@ -866,7 +869,7 @@ nonTerm* execStatement(statement* statem){
 		break;
 	}
 	case PRINTNLINE:{
-		nonTerm* ret = solveAst(statem->exp);
+		nonTerm* ret = solveAst(statem->exp, 0);
 		if(checking)
 			break;
 		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
@@ -877,7 +880,7 @@ nonTerm* execStatement(statement* statem){
 		break;		
 	}
 	case PRINTN:{
-		nonTerm* ret = solveAst(statem->exp);
+		nonTerm* ret = solveAst(statem->exp, 0);
 		if(checking)
 			break;
 		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
@@ -897,7 +900,12 @@ nonTerm* execStatement(statement* statem){
 			head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
 					
 		
-		memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp), sizeof(nonTerm));			//copies exp to the symbol table pointer
+		//memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp, 0), sizeof(nonTerm));			//copies exp to the symbol table pointer
+		solveAst(statem->exp, 0);
+		//insert r0 into var
+		writeBuff("\tLDR\tr4, =", checking);
+		writeBuff(head->name, checking);
+		writeBuff("\n\tSTR\tr0, [r4]\n", checking);
 
 		break;
 	}
@@ -907,7 +915,7 @@ nonTerm* execStatement(statement* statem){
 			break;
 		}
 
-		while(solveAst(statem->conditional)->value.num)
+		while(solveAst(statem->conditional, 0)->value.num)
 			execStatement(statem->sub1);
 		break;
 	}
@@ -918,14 +926,14 @@ nonTerm* execStatement(statement* statem){
 			break;	
 		}
 
-		if(solveAst(statem->conditional)->value.num)
+		if(solveAst(statem->conditional, 0)->value.num)
 			execStatement(statem->sub1);
 		else
 			execStatement(statem->sub2);
 		break;
 	}
 	case RET:{
-		return solveAst(statem->exp);
+		return solveAst(statem->exp, 0);
 		break;
 	}
 	default:
@@ -976,8 +984,10 @@ varType setType(char* type){
 
 
 int main(int argc, char** argv){
+	argnum = argc;
 	pushTable(NULL);	//pushes main class symbol table to stack 
 	buffer = malloc(sizeof(char)*BUFFSIZE);
+	writeBuff(".data\n", 0);	
 	classes = malloc(sizeof(classList));	//init class list
 	classesTail = classes;
 	#ifdef YYDEBUG
@@ -996,15 +1006,6 @@ int main(int argc, char** argv){
 	//free(head);
 	if(argc>1)
 		fclose(file);
-	writeBuff(".data\nprompt1: .asciz \"hi\"\n\n"
-		".text\n"
-		".global main\n"
-		"main:\n"
-		"push {fp, lr}\n"
-		"ldr r0, =prompt1\n"
-		"bl printf\n"
-		"pop {fp, pc}"
-		);
 	writeFile(fname);
 	//printall();	
 }
@@ -1203,14 +1204,22 @@ int main(int argc, char** argv){
 
 Program:	
 	MainClass ClassDeclList {
+		writeBuff("newln: .asciz \"%d\\n\"\n", !checking);	//newln decimal
+
 		execStatement((statement*)$1);
 		clean();
 		pushTable(NULL);
 		checking = 0;
+		writeBuff(".text\n"
+			".global main\n"
+			"main:\n"
+			"\tpush\t{fp, lr}\n",
+			checking);
 		if(checkBool){
 			initInputArgs(inpName);
 			execStatement((statement*)$1);
 		}
+		writeBuff("\tpop\t{fp, pc}\n", checking);
 	}
 	;
 
@@ -1278,7 +1287,7 @@ VarOrMethod:
 		if($3->methods==NULL){		//declare vars
 			//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
 			if($3->table->tree!=NULL)
-				$3->table->term = (nonTermY*)solveAst((ast*)$3->table->tree);
+				$3->table->term = (nonTermY*)solveAst((ast*)$3->table->tree, 0);
 			else
 				$3->table->term = malloc(sizeof(nonTerm));
 			$3->table->next = NULL;

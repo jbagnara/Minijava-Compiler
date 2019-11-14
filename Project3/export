@@ -1,0 +1,2 @@
+./parser test.java
+scp test.s pi@128.10.120.172:/home/pi/cs352/
