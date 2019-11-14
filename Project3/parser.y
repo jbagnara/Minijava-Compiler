@@ -18,6 +18,9 @@ struct statement;
 struct classEntry;
 struct sym;
 
+int BUFFSIZE = 100000;
+char* buffer;
+int buffindex = 0;
 int checkBool = 1;
 int checking = 1;
 char* inpName;
@@ -215,6 +218,33 @@ void clean(){
 	oldClass = NULL;
 	currentObj = NULL;
 	oldObj = NULL;
+}
+
+void writeBuff(char* inp){
+	char c = *inp;
+	while(c!='\0'){
+		buffer[buffindex] = c;
+		buffindex++;
+		inp++;
+		c = *inp;
+	}
+}
+
+void writeFile(char* fname){
+	int x=0;
+	char* cmp = fname;
+	while(*cmp!='\0'){
+		if(!strcmp(".java", cmp))
+			break;
+		x++;
+		cmp++;
+	}
+
+	fname[x]='.';
+	fname[x+1]='s';
+	fname[x+2]='\0';	
+	FILE* file = fopen(fname, "w");
+	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
 }
 
 nonTerm* mkNonTerm(int type, void* val){
@@ -638,6 +668,10 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 		case INT:{
 			int val1 = term1->value.num;
 			int val2 = term2->value.num;
+
+			writeBuff("\tLDR\tr4, =");
+			writeBuff( "\n\tLDR\tr0, [r4]\n");
+
 			int res;
 			switch(tree->node.op){
 			case STARy:
@@ -650,6 +684,7 @@ nonTerm* solveAst(ast* tree){		//reduces ast tree to single nonTerm
 				break;
 			case PLUSy:
 				res = val1+val2;
+				writeBuff("\tADD\tr0,r0,r1\n");
 				return mkNonTerm(INT, &res);
 				break;
 			case MINUSy:
@@ -941,7 +976,8 @@ varType setType(char* type){
 
 
 int main(int argc, char** argv){
-	pushTable(NULL);	//pushes main class symbol table to stack
+	pushTable(NULL);	//pushes main class symbol table to stack 
+	buffer = malloc(sizeof(char)*BUFFSIZE);
 	classes = malloc(sizeof(classList));	//init class list
 	classesTail = classes;
 	#ifdef YYDEBUG
@@ -960,6 +996,16 @@ int main(int argc, char** argv){
 	//free(head);
 	if(argc>1)
 		fclose(file);
+	writeBuff(".data\nprompt1: .asciz \"hi\"\n\n"
+		".text\n"
+		".global main\n"
+		"main:\n"
+		"push {fp, lr}\n"
+		"ldr r0, =prompt1\n"
+		"bl printf\n"
+		"pop {fp, pc}"
+		);
+	writeFile(fname);
 	//printall();	
 }
 
