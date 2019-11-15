@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 extern int yylineno;
 extern FILE* yyin;
@@ -25,6 +26,7 @@ int checkBool = 1;
 int checking = 1;
 char* inpName;
 int argnum = 0;
+int labelnum = 0;
 
 void typeViolation(int lineno){
 	checkBool = 0;
@@ -233,6 +235,39 @@ void writeBuff(char* inp, int check){
 	}
 }
 
+void writeInstr(int check, char* op, int argc, ...){
+	writeBuff("\t",check);
+	writeBuff(op,check);
+	writeBuff("\t",check);
+
+	va_list args;
+	va_start(args, argc);
+	
+	for(int x=0; x<argc; x++){
+		if(x>0)
+			writeBuff(", ", check);
+
+		writeBuff(va_arg(args, char*),check);
+	}
+	va_end(args);
+	writeBuff("\n",check);
+}
+
+char* mkLabel(int check){
+	if(check)
+		return "";
+	char* label = malloc(sizeof(char)*30);
+	sprintf(label, "B%d", labelnum);
+	labelnum++;
+	return label;
+}
+
+void writeLabel(char* label, int check){
+	writeBuff("\n", check);
+	writeBuff(label, check);
+	writeBuff(":\n", check);
+}
+
 void writeFile(char* fname){
 	int x=0;
 	char* cmp = fname;
@@ -399,7 +434,7 @@ void insert(varType type, char* name){
 		break;	
 	}
 	case STRING: {
-		writeBuff(": .asciz ""\n", !checking);	
+		writeBuff(": .byte 0\n", !checking);	
 		break;
 	}
 	case ARR: {
@@ -549,20 +584,25 @@ void printExp(nonTerm* term, int nline){
 		return;
 	switch(term->type){
 	case STRING:		//String
-		if(nline)
-			printf("%s\n", term->value.str);
-		else	
-			printf("%s", term->value.str);
+		if(nline){
+			writeInstr(checking, "mov", 2, "r1", "r0");
+			writeInstr(checking, "ldr", 2, "r0", "=snewln");
+			writeInstr(checking, "bl", 1, "printf");
+		} else {
+			writeInstr(checking, "bl", 1, "printf");	
+		}
 		break;
 	case INT:		//int
 		if(nline){
-			writeBuff("\tmov\tr1, r0\n"
-				"\tldr\tr0, =newln\n"
-				"\tbl printf\n",
-				checking);
+			writeInstr(checking, "mov", 2, "r1", "r0");
+			writeInstr(checking, "ldr", 2, "r0", "=newln");
+			writeInstr(checking, "bl", 1, "printf");
 		}
-		else	
-			printf("%d", term->value.num);
+		else {
+			writeInstr(checking, "mov", 2, "r1", "r0");
+			writeInstr(checking, "ldr", 2, "r0", "=noln");
+			writeInstr(checking, "bl", 1, "printf");
+		}	
 		break;
 	case BOOL:
 		if(term->value.num){
@@ -678,28 +718,65 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
 			} 
-			writeBuff("\tLDR\tr4, =", checking);
-			writeBuff(tree->str->str, checking);
-			writeBuff( "\n\tLDR\tr0, [r4]\n", checking);
+
+			char* tmparg = malloc(sizeof(char)*1000);
+			sprintf(tmparg, "=%s", tree->str->str);
+			writeInstr(checking, "ldr", 2, "r4", tmparg);
+			free(tmparg); 
+
+			writeInstr(checking, "ldr", 2, "r0", "[r4]");
 			return tree->node.leaf;
 		}
-		char* arg = malloc(sizeof(char)*1000);
-		sprintf(arg, "%d", tree->node.leaf->value.num);
-		writeBuff("\tmov\tr0, #", checking);
-		writeBuff(arg, checking);
-		writeBuff( "\n", checking);
-		free(arg);
+
+		switch(tree->node.leaf->type){
+		case INT:{
+			char* arg = malloc(sizeof(char)*1000);
+			sprintf(arg, "#%d", tree->node.leaf->value.num);
+			writeInstr(checking, "mov", 2, "r0", arg); 
+			free(arg);
+			break;
+		}
+
+		case STRING:{
+			char* thisStr = tree->node.leaf->value.str;
+			int size = 0;		//size to malloc
+			while(*thisStr!='\0'){
+				size++;
+				thisStr++;
+			}
+			size++;	//for \0
+			size++;
+			thisStr = tree->node.leaf->value.str;
+
+			char* arg = malloc(sizeof(char)*1000);
+			sprintf(arg, "#%d", size);	
+			writeInstr(checking, "mov", 2, "r0", arg);
+
+			writeInstr(checking, "bl", 1, "malloc");		//idk if i have to free this later
+			writeInstr(checking, "mov", 2, "r2", "r0");
+			while(*thisStr!='\0'){
+				sprintf(arg, "#%d", *thisStr);
+				writeInstr(checking, "mov", 2, "r1", arg);
+				writeInstr(checking, "str", 2, "r1", "[r0]");
+				writeInstr(checking, "add", 3, "r0", "r0", "#1");
+				thisStr++;
+			}
+			sprintf(arg, "#0");
+			writeInstr(checking, "mov", 2, "r1", arg);
+			writeInstr(checking, "str", 2, "r1", "[r0]");
+			free(arg);
+			
+			writeInstr(checking, "mov", 2, "r0", "r2");
+			break;
+		}}
 		
 		return tree->node.leaf;
 	} else {
-
 		nonTerm* term1 = solveAst(tree->node1, 0);
-		writeBuff("\tpush\t{r0}\n", checking);		//push r0	
+		writeInstr(checking, "push", 1, "{r0}");	//push r0 onto stack
 		nonTerm* term2 = solveAst(tree->node2, 1);
-		writeBuff("\tmov\tr1, r0\n", checking);
-		writeBuff("\tpop\t{r0}\n", checking);		//push r0	
-		
-		
+		writeInstr(checking, "mov", 2, "r1", "r0");
+		writeInstr(checking, "pop", 1, "{r0}");		//pop r0 back off
 
 		if(term1==NULL){
 			return NULL;
@@ -714,34 +791,52 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 
 			switch(tree->node.op){
 			case STARy:
+				writeInstr(checking, "mul", 3, "r0", "r0", "r1");
 				break;
 			case SLASHy:
 				break;
 			case PLUSy:
-				writeBuff("\tadd\tr0, r0, r1\n", checking);
+				writeInstr(checking, "add", 3, "r0", "r0", "r1");
 				break;
 			case MINUSy:
+				writeInstr(checking, "sub", 3, "r0", "r0", "r1");
 				break;
 			case LESSy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "movlt", 2, "r0", "#1");
 				break;
 			case GREATy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "movgt", 2, "r0", "#1");
 				break;
 			case LESSEQy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#1");
+				writeInstr(checking, "movgt", 2, "r0", "#0");
 				break;
 			case GREATEQy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#1");
+				writeInstr(checking, "movlt", 2, "r0", "#0");
 				break;
 			case EQUIVALENTy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "moveq", 2, "r0", "#1");
 				break;
 			case NOTEQUALy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#1");
+				writeInstr(checking, "moveq", 2, "r0", "#0");
 				break;
 			default:
 				typeViolation(line);
 			}
-			writeBuff("\tmov\tr4, r0\n", checking);		//push r0, r1	
 			if(side)
-				writeBuff("\tmov\tr1, r4\n", checking);
-			else
-				writeBuff("\tmov\tr0, r4\n", checking);
+				writeInstr(checking, "mov", 2, "r1", "r0");
+			return term1;
 		break;
 		}
 		case BOOL:{
@@ -850,6 +945,12 @@ nonTerm* execStatement(statement* statem){
 						popTable();
 					}
 					insert(check->term->type, check->name);
+					solveAst(check->tree, 0);
+					char* tmparg = malloc(sizeof(char)*1000);
+					sprintf(tmparg, "=%s", check->name);
+					writeInstr(checking, "ldr", 2, "r4", tmparg);
+					writeInstr(checking, "str", 2, "r0", "[r4]");
+					free(tmparg);
 
 					if(check->term->arrType!=NULL)	//solves for var indexes
 						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
@@ -858,6 +959,7 @@ nonTerm* execStatement(statement* statem){
 						check = check->next;
 						continue;		
 					}
+					
 					search(check->name)->term = check->term;
 				}
 			} else {
@@ -903,33 +1005,66 @@ nonTerm* execStatement(statement* statem){
 		//memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp, 0), sizeof(nonTerm));			//copies exp to the symbol table pointer
 		solveAst(statem->exp, 0);
 		//insert r0 into var
-		writeBuff("\tLDR\tr4, =", checking);
-		writeBuff(head->name, checking);
-		writeBuff("\n\tSTR\tr0, [r4]\n", checking);
+		char* tmparg = malloc(sizeof(char)*1000);
+		sprintf(tmparg, "=%s", head->name);
+		writeInstr(checking, "ldr", 2, "r4", tmparg);
+		writeInstr(checking, "str", 2, "r0", "[r4]");
+		free(tmparg);
 
 		break;
 	}
 	case WHILEN:{
-		if(checking){
-			execStatement(statem->sub1);
-			break;
-		}
+		//if(checking){
+		//	execStatement(statem->sub1);
+		//	break;
+		//}
+		char* b1 = mkLabel(checking);
+		char* b2 = mkLabel(checking);
+		writeLabel(b1, checking);
 
-		while(solveAst(statem->conditional, 0)->value.num)
-			execStatement(statem->sub1);
+		solveAst(statem->conditional, 0);
+		char* tmparg = malloc(sizeof(char)*1000);
+		sprintf(tmparg, "=%s", head->name);
+		writeInstr(checking, "cmp", 2, "r0", "#0");
+		writeInstr(checking, "beq", 1, b2);
+
+		//while(solveAst(statem->conditional, 0)->value.num)
+		execStatement(statem->sub1);
+		writeInstr(checking, "b", 1, b1);
+		writeLabel(b2, checking);
+		free(tmparg);
+
 		break;
 	}
 	case IFELSE:{
-		if(checking){
-			execStatement(statem->sub1);
-			execStatement(statem->sub2);
-			break;	
-		}
+		//if(checking){
+		//	execStatement(statem->sub1);
+		//	execStatement(statem->sub2);
+		//	break;	
+		//}
 
-		if(solveAst(statem->conditional, 0)->value.num)
-			execStatement(statem->sub1);
-		else
-			execStatement(statem->sub2);
+		//if(solveAst(statem->conditional, 0)->value.num)
+		//	execStatement(statem->sub1);
+		//else
+		//	execStatement(statem->sub2);
+
+		char* b1 = mkLabel(checking);		//start of else
+		char* b2 = mkLabel(checking);		//end of else
+
+		solveAst(statem->conditional, 0);
+		char* tmparg = malloc(sizeof(char)*1000);
+		sprintf(tmparg, "=%s", head->name);
+		writeInstr(checking, "cmp", 2, "r0", "#0");
+		writeInstr(checking, "beq", 1, b1);
+		execStatement(statem->sub1);
+		writeInstr(checking, "b", 1, b2);
+		writeLabel(b1, checking);
+		execStatement(statem->sub2);
+		writeLabel(b2, checking);	
+
+		free(tmparg);
+		
+
 		break;
 	}
 	case RET:{
@@ -1205,6 +1340,9 @@ int main(int argc, char** argv){
 Program:	
 	MainClass ClassDeclList {
 		writeBuff("newln: .asciz \"%d\\n\"\n", !checking);	//newln decimal
+		writeBuff("noln: .asciz \"%d\"\n", !checking);		//no newln decimal
+		writeBuff("snewln: .asciz \"%s\\n\"\n", !checking);	//newln string
+		
 
 		execStatement((statement*)$1);
 		clean();
@@ -1216,7 +1354,7 @@ Program:
 			"\tpush\t{fp, lr}\n",
 			checking);
 		if(checkBool){
-			initInputArgs(inpName);
+			//initInputArgs(inpName);
 			execStatement((statement*)$1);
 		}
 		writeBuff("\tpop\t{fp, pc}\n", checking);
@@ -1226,7 +1364,7 @@ Program:
 MainClass:
 	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE {
 		inpName = $8;
-		initInputArgs($8);
+		//initInputArgs($8);
 		$$ = $11;
 	}
 	;

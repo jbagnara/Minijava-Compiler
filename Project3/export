@@ -1,2 +1,2 @@
 ./parser test.java
-scp test.s pi@128.10.120.172:/home/pi/cs352/
+scp test.s pi@172.16.30.202:/home/pi/cs352/

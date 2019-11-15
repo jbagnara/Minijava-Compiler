@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.4.2.  */
+/* A Bison parser, made by GNU Bison 3.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1016 "parser.y"
+#line 1151 "parser.y"
 
 
 	struct astListY;
@@ -301,7 +301,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 1170 "parser.y"
+#line 1305 "parser.y"
 
 	int num;
 	astListY* numList;
