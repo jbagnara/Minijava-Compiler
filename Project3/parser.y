@@ -142,6 +142,8 @@ typedef struct methodList {
 	char* name;
 	arrType* type;
 	sym* arg;
+	char* label;
+	nonTerm* ret;
 	struct statement* statementList;
 	struct methodList* next;
 } methodList;
@@ -269,6 +271,7 @@ void writeLabel(char* label, int check){
 }
 
 void writeFile(char* fname){
+
 	int x=0;
 	char* cmp = fname;
 	while(*cmp!='\0'){
@@ -278,11 +281,15 @@ void writeFile(char* fname){
 		cmp++;
 	}
 
-	fname[x]='.';
-	fname[x+1]='s';
-	fname[x+2]='\0';	
-	FILE* file = fopen(fname, "w");
+	char* name = malloc(sizeof(char)*(x+2));
+	strcpy(name, fname);
+
+	name[x]='.';
+	name[x+1]='s';
+	name[x+2]='\0';	
+	FILE* file = fopen(name, "w");
 	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
+	free(name);
 }
 
 nonTerm* mkNonTerm(int type, void* val){
@@ -491,6 +498,28 @@ methodList* methodSearch(classEntry* class, char* methodName){
 	}
 	return NULL;
 	
+}
+
+void writeMethods(){		//writes all methods
+
+	classList* list = classes->next;
+	while(list!=NULL){
+		classEntry* currentClass = list->class;
+		if(currentClass==NULL)
+			return;
+
+		methodList* currentMethod = currentClass->list->methods;
+		while(currentMethod!=NULL){
+			writeLabel(currentMethod->label, checking);
+			writeInstr(checking, "push", 1, "{r1-r4, lr}");
+			currentMethod->ret = execStatement(currentMethod->statementList);
+			writeInstr(checking, "pop", 1, "{r1-r4, pc}");
+			currentMethod=currentMethod->next;	
+		}
+		list = list->next;
+	}
+
+
 }
 
 statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftVal, ast* exp, arrType* type, sym* varDecl){
@@ -702,12 +731,16 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				}
 				if(init!=NULL)
 					execStatement(init);
-				nonTerm* ret = execStatement(statementList);
+				//nonTerm* ret = execStatement(statementList);
+
+				writeInstr(checking, "bl", 1, method->label);
+				
 				popTable();
-				if(ret==NULL){
-					return NULL;
-				}
-				return ret;
+				//if(ret==NULL){
+				//	return NULL;
+				//}
+				//return ret;
+				return method->ret;
 			}
 		
 			if(search(tree->str->str)==NULL){
@@ -1036,10 +1069,6 @@ nonTerm* execStatement(statement* statem){
 		nonTerm* ret = solveAst(statem->exp, 0);
 		if(checking)
 			break;
-		if(ret==NULL || ( ret->type!=BOOL && ret->type!=INT && ret->value.str==NULL)){
-			typeViolation(line);
-			break;
-		}
 		printExp(ret, 1);
 		break;		
 	}
@@ -1131,6 +1160,7 @@ nonTerm* execStatement(statement* statem){
 	}
 	case RET:{
 		return solveAst(statem->exp, 0);
+		
 		break;
 	}
 	default:
@@ -1203,7 +1233,11 @@ int main(int argc, char** argv){
 	//free(head);
 	if(argc>1)
 		fclose(file);
-	writeFile(fname);
+	//writeFile(fname);
+
+	
+	writeFile("test");
+
 	//printall();	
 }
 
@@ -1318,6 +1352,8 @@ int main(int argc, char** argv){
 		char* name;
 		arrTypeY* type;
 		symY* arg;
+		char* label;
+		nonTermY* ret;
 		struct statementY* statementList;
 		struct methodListY* next;
 	} methodListY;
@@ -1411,15 +1447,22 @@ Program:
 		pushTable(NULL);
 		checking = 0;
 		writeBuff(".text\n"
-			".global main\n"
-			"main:\n"
+			".global main\n",
+			checking);
+
+		writeMethods();
+		
+		writeBuff("\nmain:\n"
 			"\tpush\t{fp, lr}\n",
 			checking);
+
+
 		if(checkBool){
 			//initInputArgs(inpName);
 			execStatement((statement*)$1);
 		}
 		writeBuff("\tpop\t{fp, pc}\n", checking);
+
 	}
 	;
 
@@ -1560,6 +1603,7 @@ MethodDecl:
 		methodList* methods = malloc(sizeof(methodList));
 		methods->arg = (sym*)$2;
 		methods->statementList = (statement*)$5;
+		methods->label = mkLabel(0);		//store future label for method
 		$$ = (methodListY*)methods;
 	}
 	;

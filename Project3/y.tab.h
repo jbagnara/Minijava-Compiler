@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1213 "parser.y"
+#line 1247 "parser.y"
 
 
 	struct astListY;
@@ -153,6 +153,8 @@ extern int yydebug;
 		char* name;
 		arrTypeY* type;
 		symY* arg;
+		char* label;
+		nonTermY* ret;
 		struct statementY* statementList;
 		struct methodListY* next;
 	} methodListY;
@@ -198,7 +200,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 202 "y.tab.h"
+#line 204 "y.tab.h"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -301,7 +303,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 1367 "parser.y"
+#line 1403 "parser.y"
 
 	int num;
 	astListY* numList;
@@ -317,7 +319,7 @@ union YYSTYPE
 	classEntryY* clEntry;
 	classListY* clList;
 
-#line 321 "y.tab.h"
+#line 323 "y.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
