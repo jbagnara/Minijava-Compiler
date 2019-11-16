@@ -867,8 +867,63 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				return NULL;
 			}
 			switch(tree->node.op){
-			case PLUSy:
+			case PLUSy:{
+				char* thisStr = val1;
+				int size1 = 0;
+				int size2 = 0;
+				while(*thisStr!='\0'){
+					size1++;
+					thisStr++;
+				}
+				thisStr = val2;
+				while(*thisStr!='\0'){
+					size2++;
+					thisStr++;
+				}
+				writeInstr(checking, "mov", 2, "r2", "r1");
+				writeInstr(checking, "mov", 2, "r1", "r0");	
+				char* arg = malloc(sizeof(char)*1000);
+				sprintf(arg, "#%d", size1+size2);	
+				writeInstr(checking, "mov", 2, "r0", arg);
+				free(arg);
+
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "malloc");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//malloc to r0
+
+				writeInstr(checking, "mov", 2, "r3", "r1");
+				writeInstr(checking, "push", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r3");
+				writeInstr(checking, "bl", 1, "strcat");
+				writeInstr(checking, "pop", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r3", "r0");	//copy r1 to r0, move r0 to r3
+	
+				writeInstr(checking, "mov", 2, "r0", "r1");
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "free");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
+	
+				writeInstr(checking, "mov", 2, "r0", "r3");
+				writeInstr(checking, "mov", 2, "r3", "r2");
+				writeInstr(checking, "push", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r3");
+				writeInstr(checking, "bl", 1, "strcat");
+				writeInstr(checking, "pop", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r2");	//move r3 back to r0 and cpy r2 to r0
+				writeInstr(checking, "mov", 2, "r3", "r0");
+				
+				writeInstr(checking, "mov", 2, "r0", "r1");
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "free");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
+
+				writeInstr(checking, "mov", 2, "r0", "r3");
+				
+
+
+				return term1;
 				break;
+			}
 			case PARSEINTy:{
 				break;
 			}
@@ -900,8 +955,15 @@ nonTerm* execStatement(statement* statem){
 			typeViolation(line);
 
 		while(check!=NULL){
-			if(check->term==NULL&&check->tree!=NULL)
-				check->term = solveAst(check->tree, 0);
+			if(check->term==NULL&&check->tree!=NULL){
+				if(checking)
+					check->term = solveAst(check->tree, 0);
+				else {
+					checking = 1;
+					check->term = solveAst(check->tree, 0);
+					checking = 0;
+				}
+			}
 			if(search(check->name)==NULL){	//Does not exist in sym table
 				if(check->term==NULL){	//Declared but not initialized
 					insert(thisType->type, check->name);

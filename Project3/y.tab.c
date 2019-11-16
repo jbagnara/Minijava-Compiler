@@ -936,8 +936,63 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				return NULL;
 			}
 			switch(tree->node.op){
-			case PLUSy:
+			case PLUSy:{
+				char* thisStr = val1;
+				int size1 = 0;
+				int size2 = 0;
+				while(*thisStr!='\0'){
+					size1++;
+					thisStr++;
+				}
+				thisStr = val2;
+				while(*thisStr!='\0'){
+					size2++;
+					thisStr++;
+				}
+				writeInstr(checking, "mov", 2, "r2", "r1");
+				writeInstr(checking, "mov", 2, "r1", "r0");	
+				char* arg = malloc(sizeof(char)*1000);
+				sprintf(arg, "#%d", size1+size2);	
+				writeInstr(checking, "mov", 2, "r0", arg);
+				free(arg);
+
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "malloc");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//malloc to r0
+
+				writeInstr(checking, "mov", 2, "r3", "r1");
+				writeInstr(checking, "push", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r3");
+				writeInstr(checking, "bl", 1, "strcat");
+				writeInstr(checking, "pop", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r3", "r0");	//copy r1 to r0, move r0 to r3
+	
+				writeInstr(checking, "mov", 2, "r0", "r1");
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "free");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
+	
+				writeInstr(checking, "mov", 2, "r0", "r3");
+				writeInstr(checking, "mov", 2, "r3", "r2");
+				writeInstr(checking, "push", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r3");
+				writeInstr(checking, "bl", 1, "strcat");
+				writeInstr(checking, "pop", 1, "{r1-r2}");
+				writeInstr(checking, "mov", 2, "r1", "r2");	//move r3 back to r0 and cpy r2 to r0
+				writeInstr(checking, "mov", 2, "r3", "r0");
+				
+				writeInstr(checking, "mov", 2, "r0", "r1");
+				writeInstr(checking, "push", 1, "{r1-r3}");
+				writeInstr(checking, "bl", 1, "free");
+				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
+
+				writeInstr(checking, "mov", 2, "r0", "r3");
+				
+
+
+				return term1;
 				break;
+			}
 			case PARSEINTy:{
 				break;
 			}
@@ -969,8 +1024,15 @@ nonTerm* execStatement(statement* statem){
 			typeViolation(line);
 
 		while(check!=NULL){
-			if(check->term==NULL&&check->tree!=NULL)
-				check->term = solveAst(check->tree, 0);
+			if(check->term==NULL&&check->tree!=NULL){
+				if(checking)
+					check->term = solveAst(check->tree, 0);
+				else {
+					checking = 1;
+					check->term = solveAst(check->tree, 0);
+					checking = 0;
+				}
+			}
 			if(search(check->name)==NULL){	//Does not exist in sym table
 				if(check->term==NULL){	//Declared but not initialized
 					insert(thisType->type, check->name);
@@ -1215,7 +1277,7 @@ int main(int argc, char** argv){
 }
 
 
-#line 1219 "y.tab.c"
+#line 1281 "y.tab.c"
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus
@@ -1249,7 +1311,7 @@ int main(int argc, char** argv){
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1151 "parser.y"
+#line 1213 "parser.y"
 
 
 	struct astListY;
@@ -1403,7 +1465,7 @@ extern int yydebug;
 	} statementY;
 
 
-#line 1407 "y.tab.c"
+#line 1469 "y.tab.c"
 
 /* Token type.  */
 #ifndef YYTOKENTYPE
@@ -1506,7 +1568,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 1305 "parser.y"
+#line 1367 "parser.y"
 
 	int num;
 	astListY* numList;
@@ -1522,7 +1584,7 @@ union YYSTYPE
 	classEntryY* clEntry;
 	classListY* clList;
 
-#line 1526 "y.tab.c"
+#line 1588 "y.tab.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -1832,15 +1894,15 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,  1341,  1341,  1365,  1373,  1376,  1380,  1390,  1393,  1399,
-    1405,  1418,  1424,  1441,  1451,  1457,  1465,  1469,  1475,  1483,
-    1490,  1497,  1506,  1509,  1515,  1524,  1536,  1541,  1548,  1549,
-    1553,  1558,  1564,  1568,  1571,  1578,  1585,  1589,  1593,  1599,
-    1603,  1607,  1612,  1625,  1631,  1640,  1656,  1672,  1678,  1690,
-    1698,  1714,  1730,  1740,  1745,  1751,  1757,  1762,  1771,  1777,
-    1778,  1781,  1784,  1787,  1790,  1795,  1798,  1802,  1807,  1808,
-    1813,  1816,  1822,  1823,  1824,  1828,  1829,  1830,  1834,  1835,
-    1836,  1837,  1838,  1839,  1840,  1841,  1842,  1846
+       0,  1403,  1403,  1427,  1435,  1438,  1442,  1452,  1455,  1461,
+    1467,  1480,  1486,  1503,  1513,  1519,  1527,  1531,  1537,  1545,
+    1552,  1559,  1568,  1571,  1577,  1586,  1598,  1603,  1610,  1611,
+    1615,  1620,  1626,  1630,  1633,  1640,  1647,  1651,  1655,  1661,
+    1665,  1669,  1674,  1687,  1693,  1702,  1718,  1734,  1740,  1752,
+    1760,  1776,  1792,  1802,  1807,  1813,  1819,  1824,  1833,  1839,
+    1840,  1843,  1846,  1849,  1852,  1857,  1860,  1864,  1869,  1870,
+    1875,  1878,  1884,  1885,  1886,  1890,  1891,  1892,  1896,  1897,
+    1898,  1899,  1900,  1901,  1902,  1903,  1904,  1908
 };
 #endif
 
@@ -2768,7 +2830,7 @@ yyreduce:
   switch (yyn)
     {
   case 2:
-#line 1341 "parser.y"
+#line 1403 "parser.y"
     {
 		writeBuff("newln: .asciz \"%d\\n\"\n", !checking);	//newln decimal
 		writeBuff("noln: .asciz \"%d\"\n", !checking);		//no newln decimal
@@ -2790,35 +2852,35 @@ yyreduce:
 		}
 		writeBuff("\tpop\t{fp, pc}\n", checking);
 	}
-#line 2794 "y.tab.c"
+#line 2856 "y.tab.c"
     break;
 
   case 3:
-#line 1365 "parser.y"
+#line 1427 "parser.y"
     {
 		inpName = (yyvsp[-5].str);
 		//initInputArgs($8);
 		(yyval.statem) = (yyvsp[-2].statem);
 	}
-#line 2804 "y.tab.c"
+#line 2866 "y.tab.c"
     break;
 
   case 4:
-#line 1373 "parser.y"
+#line 1435 "parser.y"
     {
 		classInsert((classEntry*)(yyvsp[-1].clEntry));
 	}
-#line 2812 "y.tab.c"
+#line 2874 "y.tab.c"
     break;
 
   case 5:
-#line 1376 "parser.y"
+#line 1438 "parser.y"
     {}
-#line 2818 "y.tab.c"
+#line 2880 "y.tab.c"
     break;
 
   case 6:
-#line 1380 "parser.y"
+#line 1442 "parser.y"
     {
 		classEntryY* class = malloc(sizeof(classEntryY));
 		class->list = (yyvsp[-1].varMethList);
@@ -2826,35 +2888,35 @@ yyreduce:
 		class->parent = (yyvsp[-3].str);
 		(yyval.clEntry) = class;
 	}
-#line 2830 "y.tab.c"
+#line 2892 "y.tab.c"
     break;
 
   case 7:
-#line 1390 "parser.y"
+#line 1452 "parser.y"
     {
 		(yyval.str) = (yyvsp[0].str);
 	}
-#line 2838 "y.tab.c"
+#line 2900 "y.tab.c"
     break;
 
   case 8:
-#line 1393 "parser.y"
+#line 1455 "parser.y"
     {
 		(yyval.str) = NULL;
 	}
-#line 2846 "y.tab.c"
+#line 2908 "y.tab.c"
     break;
 
   case 9:
-#line 1399 "parser.y"
+#line 1461 "parser.y"
     {
 		(yyval.str) = (yyvsp[0].str);
 	}
-#line 2854 "y.tab.c"
+#line 2916 "y.tab.c"
     break;
 
   case 10:
-#line 1405 "parser.y"
+#line 1467 "parser.y"
     {
 		if((yyvsp[0].varMethList)!=NULL){
 			if((yyvsp[-1].varMethList)->methods==NULL)
@@ -2868,19 +2930,19 @@ yyreduce:
 		}
 		(yyval.varMethList) = (yyvsp[-1].varMethList);	
 	}
-#line 2872 "y.tab.c"
+#line 2934 "y.tab.c"
     break;
 
   case 11:
-#line 1418 "parser.y"
+#line 1480 "parser.y"
     {
 		(yyval.varMethList) = NULL;		
 	}
-#line 2880 "y.tab.c"
+#line 2942 "y.tab.c"
     break;
 
   case 12:
-#line 1424 "parser.y"
+#line 1486 "parser.y"
     {				//no vars yet
 		if((yyvsp[0].varMethList)->methods==NULL){		//declare vars
 			//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
@@ -2898,11 +2960,11 @@ yyreduce:
 		(yyval.varMethList) = (yyvsp[0].varMethList);
 		
 	}
-#line 2902 "y.tab.c"
+#line 2964 "y.tab.c"
     break;
 
   case 13:
-#line 1441 "parser.y"
+#line 1503 "parser.y"
     { 
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->methods = (methodList*)(yyvsp[0].methList);
@@ -2910,59 +2972,59 @@ yyreduce:
 		list->methods->name = (yyvsp[-1].str);
 		(yyval.varMethList) = (varMethodListY*)list;
 	}
-#line 2914 "y.tab.c"
+#line 2976 "y.tab.c"
     break;
 
   case 14:
-#line 1451 "parser.y"
+#line 1513 "parser.y"
     {
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->table = (sym*)(yyvsp[0].termList);
 		(yyval.varMethList) = (varMethodListY*)list;
 		
 	}
-#line 2925 "y.tab.c"
+#line 2987 "y.tab.c"
     break;
 
   case 15:
-#line 1457 "parser.y"
+#line 1519 "parser.y"
     {
 		varMethodList* list = malloc(sizeof(varMethodList));
 		list->methods = (methodList*)(yyvsp[0].methList);
 		(yyval.varMethList) = (varMethodListY*)list;
 	}
-#line 2935 "y.tab.c"
+#line 2997 "y.tab.c"
     break;
 
   case 16:
-#line 1465 "parser.y"
+#line 1527 "parser.y"
     {(yyval.termList) = (yyvsp[-1].termList);}
-#line 2941 "y.tab.c"
+#line 3003 "y.tab.c"
     break;
 
   case 17:
-#line 1469 "parser.y"
+#line 1531 "parser.y"
     {
 		/*symY* var = malloc(sizeof(symY));
 		var->term = &$1;
 		$$ = var;*/
 		(yyval.termList) = (yyvsp[0].termList);
 	}
-#line 2952 "y.tab.c"
+#line 3014 "y.tab.c"
     break;
 
   case 18:
-#line 1475 "parser.y"
+#line 1537 "parser.y"
     {
 		(yyvsp[0].termList)->name = (yyvsp[-1].str);
 		(yyvsp[-3].termList)->next = (yyvsp[0].termList);
 		(yyval.termList) = (yyvsp[-3].termList);
 	}
-#line 2962 "y.tab.c"
+#line 3024 "y.tab.c"
     break;
 
   case 19:
-#line 1483 "parser.y"
+#line 1545 "parser.y"
     {
 		//$$ = *(nonTermY*)solveAst((ast*)$2);
 		symY* var = malloc(sizeof(symY));
@@ -2970,47 +3032,47 @@ yyreduce:
 		var->tree = (yyvsp[0].tree);
 		(yyval.termList) = var;
 	}
-#line 2974 "y.tab.c"
+#line 3036 "y.tab.c"
     break;
 
   case 20:
-#line 1490 "parser.y"
+#line 1552 "parser.y"
     {
 		symY* var = malloc(sizeof(symY));
 		(yyval.termList) = var;
 	}
-#line 2983 "y.tab.c"
+#line 3045 "y.tab.c"
     break;
 
   case 21:
-#line 1497 "parser.y"
+#line 1559 "parser.y"
     {		//FIX
 		methodList* methods = malloc(sizeof(methodList));
 		methods->arg = (sym*)(yyvsp[-4].termList);
 		methods->statementList = (statement*)(yyvsp[-1].statem);
 		(yyval.methList) = (methodListY*)methods;
 	}
-#line 2994 "y.tab.c"
+#line 3056 "y.tab.c"
     break;
 
   case 22:
-#line 1506 "parser.y"
+#line 1568 "parser.y"
     {
 		(yyval.termList) = (yyvsp[0].termList);
 	}
-#line 3002 "y.tab.c"
+#line 3064 "y.tab.c"
     break;
 
   case 23:
-#line 1509 "parser.y"
+#line 1571 "parser.y"
     {
 		(yyval.termList) = NULL;
 	}
-#line 3010 "y.tab.c"
+#line 3072 "y.tab.c"
     break;
 
   case 24:
-#line 1515 "parser.y"
+#line 1577 "parser.y"
     {									//no array support
 		symY* var = malloc(sizeof(symY));
 		//var->term = (nonTermY*)solveAst((ast*)$2);
@@ -3020,11 +3082,11 @@ yyreduce:
 		var->term->type = (yyvsp[-1].type)->type;
 		(yyval.termList) = var;
 	}
-#line 3024 "y.tab.c"
+#line 3086 "y.tab.c"
     break;
 
   case 25:
-#line 1524 "parser.y"
+#line 1586 "parser.y"
     {
 		symY* var = malloc(sizeof(symY));
 		//var->term = (nonTermY*)solveAst((ast*)$2);
@@ -3035,78 +3097,78 @@ yyreduce:
 		var->next = (yyvsp[0].termList);
 		(yyval.termList) = var;
 	}
-#line 3039 "y.tab.c"
+#line 3101 "y.tab.c"
     break;
 
   case 26:
-#line 1536 "parser.y"
+#line 1598 "parser.y"
     {
 		(yyval.type) = malloc(sizeof(arrTypeY));
 		(yyval.type)->type = setType((yyvsp[-1].str));
 		(yyval.type)->deg = (yyvsp[0].num);
 	}
-#line 3049 "y.tab.c"
+#line 3111 "y.tab.c"
     break;
 
   case 27:
-#line 1541 "parser.y"
+#line 1603 "parser.y"
     {
 		(yyval.type) = malloc(sizeof(arrTypeY));
 		(yyval.type)->type = CLASSy;
 		(yyval.type)->class = (yyvsp[-1].str);
 	}
-#line 3059 "y.tab.c"
+#line 3121 "y.tab.c"
     break;
 
   case 28:
-#line 1548 "parser.y"
+#line 1610 "parser.y"
     {(yyval.num)++;}
-#line 3065 "y.tab.c"
+#line 3127 "y.tab.c"
     break;
 
   case 29:
-#line 1549 "parser.y"
+#line 1611 "parser.y"
     {(yyval.num) = 1;}
-#line 3071 "y.tab.c"
+#line 3133 "y.tab.c"
     break;
 
   case 30:
-#line 1553 "parser.y"
+#line 1615 "parser.y"
     {
 		//execStatement((statement*)$2);
 		(yyvsp[-1].statem)->next = (yyvsp[0].statem);
 		(yyval.statem) = (yyvsp[-1].statem);	
 	}
-#line 3081 "y.tab.c"
+#line 3143 "y.tab.c"
     break;
 
   case 31:
-#line 1558 "parser.y"
+#line 1620 "parser.y"
     {
 		(yyval.statem) = NULL;	//this needs to be here
 	}
-#line 3089 "y.tab.c"
+#line 3151 "y.tab.c"
     break;
 
   case 32:
-#line 1564 "parser.y"
+#line 1626 "parser.y"
     {
 		statement* statem = mkStatement(DECLY, NULL, (yyvsp[-1].str), NULL, NULL, (arrType*)(yyvsp[-2].type), (sym*)(yyvsp[0].termList));
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 3098 "y.tab.c"
+#line 3160 "y.tab.c"
     break;
 
   case 33:
-#line 1568 "parser.y"
+#line 1630 "parser.y"
     {
 		(yyval.statem) = (yyvsp[-1].statem);
 	}
-#line 3106 "y.tab.c"
+#line 3168 "y.tab.c"
     break;
 
   case 34:
-#line 1571 "parser.y"
+#line 1633 "parser.y"
     {
 		statement* statem = mkStatement(IFELSEY, NULL, NULL, NULL, NULL, NULL, NULL);
 		statem->conditional = (ast*)(yyvsp[-4].tree);
@@ -3114,11 +3176,11 @@ yyreduce:
 		statem->sub2 = (statement*)(yyvsp[0].statem);
 		(yyval.statem) = (statementY*)statem;		
 	}
-#line 3118 "y.tab.c"
+#line 3180 "y.tab.c"
     break;
 
   case 35:
-#line 1578 "parser.y"
+#line 1640 "parser.y"
     {	//This guy adds an extra null statement that gets checked
 		statement* statem = mkStatement(WHILENY, NULL, NULL, NULL, NULL, NULL, NULL);		
 		statem->conditional = (ast*)(yyvsp[-2].tree);
@@ -3126,64 +3188,64 @@ yyreduce:
 		(yyval.statem) = (statementY*)statem;
 		
 	}
-#line 3130 "y.tab.c"
+#line 3192 "y.tab.c"
     break;
 
   case 36:
-#line 1585 "parser.y"
+#line 1647 "parser.y"
     {
 		statement* statem = mkStatement(PRINTNLINE, NULL, NULL, NULL, (ast*)(yyvsp[-2].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 3139 "y.tab.c"
+#line 3201 "y.tab.c"
     break;
 
   case 37:
-#line 1589 "parser.y"
+#line 1651 "parser.y"
     {
 		statement* statem = mkStatement(PRINTN, NULL, NULL, NULL, (ast*)(yyvsp[-2].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 3148 "y.tab.c"
+#line 3210 "y.tab.c"
     break;
 
   case 38:
-#line 1593 "parser.y"
+#line 1655 "parser.y"
     {
 		//$1->term = (nonTermY*)solveAst((ast*)$3);
 		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)(yyvsp[-3].strarr), (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 		//memcpy((void*)$1->term, (void*)(solveAst((ast*)$3)), sizeof(nonTerm));	//lol
 	}
-#line 3159 "y.tab.c"
+#line 3221 "y.tab.c"
     break;
 
   case 39:
-#line 1599 "parser.y"
+#line 1661 "parser.y"
     {
 		statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)(yyvsp[-3].strarr), (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 3168 "y.tab.c"
+#line 3230 "y.tab.c"
     break;
 
   case 40:
-#line 1603 "parser.y"
+#line 1665 "parser.y"
     {
 		statement* statem = mkStatement(RET, NULL, NULL, NULL, (ast*)(yyvsp[-1].tree), NULL, NULL);
 		(yyval.statem) = (statementY*)statem;
 	}
-#line 3177 "y.tab.c"
+#line 3239 "y.tab.c"
     break;
 
   case 41:
-#line 1607 "parser.y"
+#line 1669 "parser.y"
     {}
-#line 3183 "y.tab.c"
+#line 3245 "y.tab.c"
     break;
 
   case 42:
-#line 1612 "parser.y"
+#line 1674 "parser.y"
     {
 		strArrY* this = (yyvsp[-3].strarr);
 		//symY* this2 = $3;
@@ -3197,19 +3259,19 @@ yyreduce:
 		(yyval.strarr) = (yyvsp[-3].strarr);
 	
 	}
-#line 3201 "y.tab.c"
+#line 3263 "y.tab.c"
     break;
 
   case 43:
-#line 1625 "parser.y"
+#line 1687 "parser.y"
     {
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3209 "y.tab.c"
+#line 3271 "y.tab.c"
     break;
 
   case 44:
-#line 1631 "parser.y"
+#line 1693 "parser.y"
     {
 		//if(search($1)!=NULL)
 			strArrY* this = malloc(sizeof(strArrY));
@@ -3219,11 +3281,11 @@ yyreduce:
 		//else
 		//	typeViolation();
 	}
-#line 3223 "y.tab.c"
+#line 3285 "y.tab.c"
     break;
 
   case 45:
-#line 1640 "parser.y"
+#line 1702 "parser.y"
     {
 		if((yyvsp[-2].strarr)->num == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->num = malloc(sizeof(astListY));
@@ -3240,11 +3302,11 @@ yyreduce:
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3244 "y.tab.c"
+#line 3306 "y.tab.c"
     break;
 
   case 46:
-#line 1656 "parser.y"
+#line 1718 "parser.y"
     {
 		if((yyvsp[-2].strarr)->class == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
@@ -3261,22 +3323,22 @@ yyreduce:
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3265 "y.tab.c"
+#line 3327 "y.tab.c"
     break;
 
   case 47:
-#line 1672 "parser.y"
+#line 1734 "parser.y"
     {
 		char* str = (yyvsp[0].str);
 		(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
 		(yyvsp[-2].strarr)->class->name = (yyvsp[0].str);
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3276 "y.tab.c"
+#line 3338 "y.tab.c"
     break;
 
   case 48:
-#line 1678 "parser.y"
+#line 1740 "parser.y"
     {
 		char* str = (yyvsp[0].str);
 		strArrY* this = malloc(sizeof(strArrY));
@@ -3286,21 +3348,21 @@ yyreduce:
 		this->class->name = (yyvsp[0].str);	
 		(yyval.strarr) = this;
 	}
-#line 3290 "y.tab.c"
+#line 3352 "y.tab.c"
     break;
 
   case 49:
-#line 1690 "parser.y"
+#line 1752 "parser.y"
     {
 		strArrY* this = malloc(sizeof(strArrY));
 		this->str = (yyvsp[-2].str);
 		(yyval.strarr) = this;
 	}
-#line 3300 "y.tab.c"
+#line 3362 "y.tab.c"
     break;
 
   case 50:
-#line 1698 "parser.y"
+#line 1760 "parser.y"
     {
 		if((yyvsp[-2].strarr)->num == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->num = malloc(sizeof(astListY));
@@ -3317,11 +3379,11 @@ yyreduce:
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3321 "y.tab.c"
+#line 3383 "y.tab.c"
     break;
 
   case 51:
-#line 1714 "parser.y"
+#line 1776 "parser.y"
     {
 		if((yyvsp[-2].strarr)->class == NULL){		//first deg of array
 			(yyvsp[-2].strarr)->class = malloc(sizeof(classLinkListY));
@@ -3338,11 +3400,11 @@ yyreduce:
 		}
 		(yyval.strarr) = (yyvsp[-2].strarr);
 	}
-#line 3342 "y.tab.c"
+#line 3404 "y.tab.c"
     break;
 
   case 52:
-#line 1730 "parser.y"
+#line 1792 "parser.y"
     {
 		char* str = (yyvsp[0].str);
 		(yyvsp[-3].strarr)->class = malloc(sizeof(classLinkListY));
@@ -3350,272 +3412,272 @@ yyreduce:
 		(yyval.strarr) = (yyvsp[-3].strarr);
 
 	}
-#line 3354 "y.tab.c"
+#line 3416 "y.tab.c"
     break;
 
   case 53:
-#line 1740 "parser.y"
+#line 1802 "parser.y"
     {
 		(yyval.numList) = malloc(sizeof(astListY));
 		(yyval.numList)->num = (yyvsp[-2].tree);
 		(yyval.numList)->next = (yyvsp[0].numList);	
 	}
-#line 3364 "y.tab.c"
+#line 3426 "y.tab.c"
     break;
 
   case 54:
-#line 1745 "parser.y"
+#line 1807 "parser.y"
     {
 		(yyval.numList) = malloc(sizeof(astListY));
 		(yyval.numList)->num = (yyvsp[0].tree);
 	}
-#line 3373 "y.tab.c"
+#line 3435 "y.tab.c"
     break;
 
   case 55:
-#line 1751 "parser.y"
+#line 1813 "parser.y"
     {
 		(yyval.tree) = (yyvsp[-1].tree);
 	}
-#line 3381 "y.tab.c"
+#line 3443 "y.tab.c"
     break;
 
   case 56:
-#line 1757 "parser.y"
+#line 1819 "parser.y"
     {
 		astList* list = malloc(sizeof(astList));
 		list->num = (ast*)(yyvsp[0].tree);
 		(yyval.numList) = (astListY*)list;
 	}
-#line 3391 "y.tab.c"
+#line 3453 "y.tab.c"
     break;
 
   case 57:
-#line 1762 "parser.y"
+#line 1824 "parser.y"
     {
 		astList* list = malloc(sizeof(astList));
 		list->num = (ast*)(yyvsp[-2].tree);
 		list->next = (astList*)(yyvsp[0].numList);	
 		(yyval.numList) = (astListY*)list;
 	}
-#line 3402 "y.tab.c"
+#line 3464 "y.tab.c"
     break;
 
   case 58:
-#line 1771 "parser.y"
+#line 1833 "parser.y"
     {
 		int* zero = malloc(sizeof(int));
 		*zero = 0;
 		astY* zed = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)zero));
 		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[0].tree), (ast*)zed, EQUIVALENTy);
 	}
-#line 3413 "y.tab.c"
+#line 3475 "y.tab.c"
     break;
 
   case 59:
-#line 1777 "parser.y"
+#line 1839 "parser.y"
     {(yyval.tree) = (yyvsp[-1].tree);}
-#line 3419 "y.tab.c"
+#line 3481 "y.tab.c"
     break;
 
   case 60:
-#line 1778 "parser.y"
+#line 1840 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(STRINGY, (void*)(yyvsp[0].str)));
 	}
-#line 3427 "y.tab.c"
+#line 3489 "y.tab.c"
     break;
 
   case 61:
-#line 1781 "parser.y"
+#line 1843 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&(yyvsp[0].num)));
 	}
-#line 3435 "y.tab.c"
+#line 3497 "y.tab.c"
     break;
 
   case 62:
-#line 1784 "parser.y"
+#line 1846 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(BOOLY, (void*)&(yyvsp[0].num)));
 	}
-#line 3443 "y.tab.c"
+#line 3505 "y.tab.c"
     break;
 
   case 63:
-#line 1787 "parser.y"
+#line 1849 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(INTY, (void*)&(yyvsp[0].num)));
 	}
-#line 3451 "y.tab.c"
+#line 3513 "y.tab.c"
     break;
 
   case 64:
-#line 1790 "parser.y"
+#line 1852 "parser.y"
     {
 		if((yyvsp[0].strarr)!=NULL){
 			(yyval.tree) = (astY*)mkLeafStr((strArr*)(yyvsp[0].strarr));
 		}	
 	}
-#line 3461 "y.tab.c"
+#line 3523 "y.tab.c"
     break;
 
   case 65:
-#line 1795 "parser.y"
+#line 1857 "parser.y"
     {
 		(yyval.tree) = (astY*)mkLeaf(mkNonTerm(CLASSY, (yyvsp[0].strarr)));
 	}
-#line 3469 "y.tab.c"
+#line 3531 "y.tab.c"
     break;
 
   case 66:
-#line 1798 "parser.y"
+#line 1860 "parser.y"
     {		//CREATE ENTIRE ARRAY USING LIST OF INT
 		(yyval.tree) = (astY*)mkLeaf((nonTerm*)mkNonTerm(ARRUNDECY, (astList*)(yyvsp[0].numList)));
 		(yyval.tree)->node.leaf->arrType = (yyvsp[-2].type);
 	}
-#line 3478 "y.tab.c"
+#line 3540 "y.tab.c"
     break;
 
   case 67:
-#line 1802 "parser.y"
+#line 1864 "parser.y"
     {
 		if((yyvsp[0].strarr)!=NULL){
 			(yyval.tree) = (astY*)mkLeafStr((strArr*)(yyvsp[0].strarr));
 		}
 	}
-#line 3488 "y.tab.c"
+#line 3550 "y.tab.c"
     break;
 
   case 68:
-#line 1807 "parser.y"
+#line 1869 "parser.y"
     {}
-#line 3494 "y.tab.c"
+#line 3556 "y.tab.c"
     break;
 
   case 69:
-#line 1808 "parser.y"
+#line 1870 "parser.y"
     {
 		int* neg = malloc(sizeof(int));
 		*neg = -1;
 		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[0].tree), (ast*)mkLeaf(mkNonTerm(INTY, (void*)neg)), STARY);
 	}
-#line 3504 "y.tab.c"
+#line 3566 "y.tab.c"
     break;
 
   case 70:
-#line 1813 "parser.y"
+#line 1875 "parser.y"
     {
 		(yyval.tree) = (yyvsp[0].tree);
 	}
-#line 3512 "y.tab.c"
-    break;
-
-  case 71:
-#line 1816 "parser.y"
-    {
-		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-1].tree), (ast*)(yyvsp[-1].tree), PARSEINTY);
-	}
-#line 3520 "y.tab.c"
-    break;
-
-  case 72:
-#line 1822 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), STARY);}
-#line 3526 "y.tab.c"
-    break;
-
-  case 73:
-#line 1823 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), SLASHY);}
-#line 3532 "y.tab.c"
-    break;
-
-  case 74:
-#line 1824 "parser.y"
-    {(yyval.tree) = (yyvsp[0].tree);}
-#line 3538 "y.tab.c"
-    break;
-
-  case 75:
-#line 1828 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), PLUSY);}
-#line 3544 "y.tab.c"
-    break;
-
-  case 76:
-#line 1829 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), MINUSY);}
-#line 3550 "y.tab.c"
-    break;
-
-  case 77:
-#line 1830 "parser.y"
-    {(yyval.tree) = (yyvsp[0].tree);}
-#line 3556 "y.tab.c"
-    break;
-
-  case 78:
-#line 1834 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ANDY);}
-#line 3562 "y.tab.c"
-    break;
-
-  case 79:
-#line 1835 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ORY);}
-#line 3568 "y.tab.c"
-    break;
-
-  case 80:
-#line 1836 "parser.y"
-    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), LESSY);}
 #line 3574 "y.tab.c"
     break;
 
+  case 71:
+#line 1878 "parser.y"
+    {
+		(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-1].tree), (ast*)(yyvsp[-1].tree), PARSEINTY);
+	}
+#line 3582 "y.tab.c"
+    break;
+
+  case 72:
+#line 1884 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), STARY);}
+#line 3588 "y.tab.c"
+    break;
+
+  case 73:
+#line 1885 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), SLASHY);}
+#line 3594 "y.tab.c"
+    break;
+
+  case 74:
+#line 1886 "parser.y"
+    {(yyval.tree) = (yyvsp[0].tree);}
+#line 3600 "y.tab.c"
+    break;
+
+  case 75:
+#line 1890 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), PLUSY);}
+#line 3606 "y.tab.c"
+    break;
+
+  case 76:
+#line 1891 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), MINUSY);}
+#line 3612 "y.tab.c"
+    break;
+
+  case 77:
+#line 1892 "parser.y"
+    {(yyval.tree) = (yyvsp[0].tree);}
+#line 3618 "y.tab.c"
+    break;
+
+  case 78:
+#line 1896 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ANDY);}
+#line 3624 "y.tab.c"
+    break;
+
+  case 79:
+#line 1897 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), ORY);}
+#line 3630 "y.tab.c"
+    break;
+
+  case 80:
+#line 1898 "parser.y"
+    {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), LESSY);}
+#line 3636 "y.tab.c"
+    break;
+
   case 81:
-#line 1837 "parser.y"
+#line 1899 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), GREATY);}
-#line 3580 "y.tab.c"
+#line 3642 "y.tab.c"
     break;
 
   case 82:
-#line 1838 "parser.y"
+#line 1900 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), LESSEQY);}
-#line 3586 "y.tab.c"
+#line 3648 "y.tab.c"
     break;
 
   case 83:
-#line 1839 "parser.y"
+#line 1901 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), GREATEQY);}
-#line 3592 "y.tab.c"
+#line 3654 "y.tab.c"
     break;
 
   case 84:
-#line 1840 "parser.y"
+#line 1902 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), EQUIVALENTY);}
-#line 3598 "y.tab.c"
+#line 3660 "y.tab.c"
     break;
 
   case 85:
-#line 1841 "parser.y"
+#line 1903 "parser.y"
     {(yyval.tree) = (astY*)mkNode((ast*)(yyvsp[-2].tree), (ast*)(yyvsp[0].tree), NOTEQUALY);}
-#line 3604 "y.tab.c"
+#line 3666 "y.tab.c"
     break;
 
   case 87:
-#line 1846 "parser.y"
+#line 1908 "parser.y"
     {
 		if(search((yyvsp[0].str))!=NULL){
 			memcpy((void*)&(yyval.term), (void*)search((yyvsp[0].str))->term, sizeof(nonTerm));
 		} else{		//do something if not declared yet, idk what
 		}
 	}
-#line 3615 "y.tab.c"
+#line 3677 "y.tab.c"
     break;
 
 
-#line 3619 "y.tab.c"
+#line 3681 "y.tab.c"
 
       default: break;
     }

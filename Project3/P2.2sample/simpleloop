@@ -3,7 +3,8 @@ class simpleloop {
 	int n = 100;
 	if (n < 1) System.out.println("Enter a positive integer;\n");
 	else {
-	      System.out.print("Factorial of ");
+		String out = "Factorial" + " of ";
+	      System.out.print(out);
 	      System.out.print(n);
 	      System.out.print(" is ");
 	}
