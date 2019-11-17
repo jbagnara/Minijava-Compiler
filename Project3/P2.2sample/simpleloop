@@ -1,6 +1,6 @@
 class simpleloop {
     public static void main(String [] args) {
-	int n = 100;
+	int n = Integer.parseInt(args);
 	if (n < 1) System.out.println("Enter a positive integer;\n");
 	else {
 		String out = "Factorial" + " of ";
@@ -10,19 +10,11 @@ class simpleloop {
 	}
         int multiplier = 1;
         int prod = 1;
-        while (multiplier <= 10) {
+        while (multiplier <= n) {
             prod = prod * multiplier;
             multiplier = multiplier + 1;
         }
         System.out.print(prod);
         System.out.println("\n");
-	System.out.println(new chungus().yeah());
     }
-}
-
-class chungus {
-	public int yeah(){
-		System.out.println("hi");		
-		return 1;
-	}
 }

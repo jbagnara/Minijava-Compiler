@@ -44,7 +44,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1247 "parser.y"
+#line 1294 "parser.y"
 
 
 	struct astListY;
@@ -303,7 +303,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 1403 "parser.y"
+#line 1450 "parser.y"
 
 	int num;
 	astListY* numList;

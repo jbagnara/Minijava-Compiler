@@ -26,6 +26,7 @@ int checkBool = 1;
 int checking = 1;
 char* inpName;
 int argnum = 0;
+char* argname;
 int labelnum = 0;
 
 void typeViolation(int lineno){
@@ -441,8 +442,12 @@ void insert(varType type, char* name){
 		break;	
 	}
 	case STRING: {
-		writeBuff(": .byte 0\n", !checking);	
+		writeBuff(": .word 0\n", !checking);	
 		break;
+	}
+	case BOOL: {
+		writeBuff(": .word 0\n", !checking);
+		break;	
 	}
 	case ARR: {
 		writeBuff(": .word 0\n", !checking);//come back!
@@ -535,23 +540,35 @@ statement* mkStatement(cmd command, ast* conditional, char* word1, strArr* leftV
 	exec->lineno = yylineno;
 }
 
-statement* initArgs(sym* list, sym* input){			//do type checks! ***
+void initArgs(sym* list, sym* input){			//do type checks! ***
 		
-	statement* current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, list);
-	current->formalListBool=1;
-	statement* stateHead = current;
+	//statement* current = mkStatement(DECL, NULL, list->name,  NULL, NULL, list->term->arrType, list);
+	//current->formalListBool=1;
+	//statement* stateHead = current;
 	sym* itr = list;
 	while(input!=NULL&&itr!=NULL){	
 		strArr* this = malloc(sizeof(strArr));
 		this->str = itr->name;
 		if(this->str==NULL||input->term==NULL)
-			return NULL;
-		current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
-		current = current->next;
+			return;
+
+		char* arg = malloc(sizeof(char)*1000);
+		arg[0] = '=';
+		strcpy(arg+1, this->str);
+		writeInstr(checking, "ldr", 2, "r4", arg);
+		free(arg);
+
+		solveAst(mkLeaf(input->term), 0);
+		writeInstr(checking, "str", 2, "r0", "[r4]");
+
+		writeBuff(this->str, !checking);		//declare instance var
+		writeBuff(": .word 0\n", !checking);
+
+		//current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
 		input = input->next;
 		itr = itr->next;
 	}
-	return stateHead;
+	return; 
 
 	//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
 	//statement* statem = mkStatement(INIT, NULL, NULL, (strArr*)$1, (ast*)$3, NULL, NULL);
@@ -581,7 +598,7 @@ statement* declArgs(classEntry* class){
 }
 
 void initInputArgs(char* name){
-	astList* deg = malloc(sizeof(astList));
+	/*astList* deg = malloc(sizeof(astList));
 	int* hundert = malloc(sizeof(int));
 	*hundert = argnum;
 	deg->num = mkLeaf(mkNonTerm(INT, hundert));
@@ -589,22 +606,37 @@ void initInputArgs(char* name){
 	sym* inpHead;
 	char** itr = mainArgs;
 
+	sym* inputArgs = malloc(sizeof(sym));
+	inputArgs->tree = mkLeaf(mkNonTerm(STRING, mainArgs[0]));
+
 	insert(ARR, name);	
-	nonTerm* arr = mkNonTermArr(STRING, deg);
-	search(name)->term = arr;
+
+	solveAst(mkLeaf(inputArgs->term), 0);
+	char* tmparg = malloc(sizeof(char)*1000);
+	sprintf(tmparg, "=%s", name);
+	writeInstr(checking, "ldr", 2, "r4", tmparg);
+	writeInstr(checking, "str", 2, "r0", "[r4]");
+	free(tmparg);
+
+	//nonTerm* arr = mkNonTermArr(STRING, deg);
+	//search(name)->term = arr;
 	
+	*/
+
+	insert(STRING, name);
+	search(name)->term = mkNonTerm(STRING, "");
 	int x=0;
-	while(itr[x]!=NULL){
-		//inputArgs = malloc(sizeof(sym));
-		//inputArgs->tree = mkLeaf(mkNonTerm(STRING, itr));
-		//if(inpHead==NULL)
-		//	inpHead = inputArgs;
-		//inputArgs = inputArgs->next;
-		//memcpy((void*)searchNonTermArr(search(name)->term, x), mkNonTerm(STRING, itr), sizeof(nonTerm));
+	/*while(itr[x]!=NULL){
+		inputArgs = malloc(sizeof(sym));
+		inputArgs->tree = mkLeaf(mkNonTerm(STRING, itr));
+		if(inpHead==NULL)
+			inpHead = inputArgs;
+		inputArgs = inputArgs->next;
+		memcpy((void*)searchNonTermArr(search(name)->term, x), mkNonTerm(STRING, itr), sizeof(nonTerm));
 		memcpy(search(name)->term->value.arr[x], mkNonTerm(STRING, itr[x]), sizeof(nonTerm));
 		x++;
 		itr++;
-	}
+	}*/
 
 }
 
@@ -634,17 +666,25 @@ void printExp(nonTerm* term, int nline){
 		}	
 		break;
 	case BOOL:
-		if(term->value.num){
-			if(nline)
-				printf("true\n");
-			else	
-				printf("true");
+		writeInstr(checking, "cmp", 2, "r0", "#1");
+		char* label1 = mkLabel(checking);
+		char* label2 = mkLabel(checking);
+		if(nline){
+			writeInstr(checking, "beq", 1, label1);
+			writeInstr(checking, "ldr", 2, "r0", "=falseln");
+			writeInstr(checking, "bl", 1, label2);
+			writeLabel(label1, checking);
+			writeInstr(checking, "ldr", 2, "r0", "=trueln");
+			
 		} else {
-			if(nline)
-				printf("false\n");
-			else	
-				printf("false");
+			writeInstr(checking, "beq", 1, label1);
+			writeInstr(checking, "ldr", 2, "r0", "=false");
+			writeInstr(checking, "bl", 1, label2);
+			writeLabel(label1, checking);
+			writeInstr(checking, "ldr", 2, "r0", "=true");
 		}
+		writeLabel(label2, checking);
+		writeInstr(checking, "bl", 1, "printf");
 		break;
 	case ARR:
 		printf("uhh\n");
@@ -707,15 +747,6 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 					formInput = formInput->next;
 					input = input->next;
 				}	
-				statement* init = NULL;
-				if(method->arg!=NULL&&formhead!=NULL){
-					init = initArgs(method->arg, formhead);	//input declarations
-					if(init==NULL){
-						return NULL;
-					}
-				}
-				statement* args = NULL;
-				args = declArgs(thisClass);
 				
 				if(statementList==NULL)
 					typeViolation(line);
@@ -726,20 +757,12 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				else {
 					pushTable(NULL);
 					currentClass = thisClass;
-					if(args!=NULL)
-						execStatement(args);
 				}
-				if(init!=NULL)
-					execStatement(init);
 				//nonTerm* ret = execStatement(statementList);
-
-				writeInstr(checking, "bl", 1, method->label);
+				initArgs(method->arg, formhead);		//this will need to be changed
+				writeInstr(checking, "bl", 1, method->label);		//branch to method
 				
 				popTable();
-				//if(ret==NULL){
-				//	return NULL;
-				//}
-				//return ret;
 				return method->ret;
 			}
 		
@@ -763,6 +786,14 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 
 		switch(tree->node.leaf->type){
 		case INT:{
+			char* arg = malloc(sizeof(char)*1000);
+			sprintf(arg, "#%d", tree->node.leaf->value.num);
+			writeInstr(checking, "mov", 2, "r0", arg); 
+			free(arg);
+			break;
+		}
+
+		case BOOL:{
 			char* arg = malloc(sizeof(char)*1000);
 			sprintf(arg, "#%d", tree->node.leaf->value.num);
 			writeInstr(checking, "mov", 2, "r0", arg); 
@@ -838,31 +869,37 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#0");
 				writeInstr(checking, "movlt", 2, "r0", "#1");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			case GREATy:
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#0");
 				writeInstr(checking, "movgt", 2, "r0", "#1");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			case LESSEQy:
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#1");
 				writeInstr(checking, "movgt", 2, "r0", "#0");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			case GREATEQy:
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#1");
 				writeInstr(checking, "movlt", 2, "r0", "#0");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			case EQUIVALENTy:
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#0");
 				writeInstr(checking, "moveq", 2, "r0", "#1");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			case NOTEQUALy:
 				writeInstr(checking, "cmp", 2, "r0", "r1");
 				writeInstr(checking, "mov", 2, "r0", "#1");
 				writeInstr(checking, "moveq", 2, "r0", "#0");
+				return mkNonTerm(BOOL, mkLeaf(term1));
 				break;
 			default:
 				typeViolation(line);
@@ -873,22 +910,41 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 		break;
 		}
 		case BOOL:{
-			int val1 = term1->value.num;
-			int val2 = term2->value.num;
-			int res;
+			//int val1 = term1->value.num;
+			//int val2 = term2->value.num;
+			//int res;
 			switch(tree->node.op){
 			case EQUIVALENTy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "moveq", 2, "r0", "#1");
 				break;
 			case NOTEQUALy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#1");
+				writeInstr(checking, "moveq", 2, "r0", "#0");
 				break;
 			case ANDy:
+				writeInstr(checking, "cmp", 2, "r0", "r1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "moveq", 2, "r0", "#1");
+				writeInstr(checking, "cmp", 2, "r1", "#0");
+				writeInstr(checking, "moveq", 2, "r0", "#0");	//mov 1 if equal, then 0 if false	
 				break;
 			case ORy:
+				writeInstr(checking, "cmp", 2, "r0", "#1");
+				writeInstr(checking, "mov", 2, "r0", "#0");
+				writeInstr(checking, "moveq", 2, "r0", "#1");
+				writeInstr(checking, "cmp", 2, "r1", "#1");
+				writeInstr(checking, "moveq", 2, "r0", "#1");
 				break;
 			default:
 				printf("invalid bool operation %d\n", term1->type );
 				typeViolation(line);
 			}
+			if(side)
+				writeInstr(checking, "mov", 2, "r1", "r0");
+			return term1;
 		break;
 		}
 		case STRING:{
@@ -929,40 +985,27 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				writeInstr(checking, "mov", 2, "r1", "r3");
 				writeInstr(checking, "bl", 1, "strcat");
 				writeInstr(checking, "pop", 1, "{r1-r2}");
-				writeInstr(checking, "mov", 2, "r3", "r0");	//copy r1 to r0, move r0 to r3
-	
-				writeInstr(checking, "mov", 2, "r0", "r1");
-				writeInstr(checking, "push", 1, "{r1-r3}");
-				writeInstr(checking, "bl", 1, "free");
-				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
-	
-				writeInstr(checking, "mov", 2, "r0", "r3");
+
 				writeInstr(checking, "mov", 2, "r3", "r2");
 				writeInstr(checking, "push", 1, "{r1-r2}");
 				writeInstr(checking, "mov", 2, "r1", "r3");
 				writeInstr(checking, "bl", 1, "strcat");
 				writeInstr(checking, "pop", 1, "{r1-r2}");
 				writeInstr(checking, "mov", 2, "r1", "r2");	//move r3 back to r0 and cpy r2 to r0
-				writeInstr(checking, "mov", 2, "r3", "r0");
 				
-				writeInstr(checking, "mov", 2, "r0", "r1");
-				writeInstr(checking, "push", 1, "{r1-r3}");
-				writeInstr(checking, "bl", 1, "free");
-				writeInstr(checking, "pop", 1, "{r1-r3}");	//move r1 to r0 and free r0
-
-				writeInstr(checking, "mov", 2, "r0", "r3");
-				
-
-
-				return term1;
 				break;
 			}
 			case PARSEINTy:{
+				writeInstr(checking, "bl", 1, "atoi");
+				return mkNonTerm(INT, mkLeaf(term1));
 				break;
 			}
 			default:
 				typeViolation(line);
 			}
+			if(side)
+				writeInstr(checking, "mov", 2, "r1", "r0");
+			return term1;
 		break;
 		}
 		case ARR:
@@ -1010,10 +1053,14 @@ nonTerm* execStatement(statement* statem){
 							}
 
 						} else if(!statem->formalListBool) {
-							if(checking&&check->tree->node.op==PARSEINTy){
-								if(check->tree->node1->node.leaf->value.str==NULL)
-									typeViolation(line);
+							if(check->tree->node.op==PARSEINTy){
 								insert(INT, check->name);
+								solveAst(check->tree, 0);
+								char* tmparg = malloc(sizeof(char)*1000);
+								sprintf(tmparg, "=%s", check->name);
+								writeInstr(checking, "ldr", 2, "r4", tmparg);
+								writeInstr(checking, "str", 2, "r0", "[r4]");
+								free(tmparg);
 								break;	
 							}
 							typeViolation(line);
@@ -1440,6 +1487,10 @@ Program:
 		writeBuff("newln: .asciz \"%d\\n\"\n", !checking);	//newln decimal
 		writeBuff("noln: .asciz \"%d\"\n", !checking);		//no newln decimal
 		writeBuff("snewln: .asciz \"%s\\n\"\n", !checking);	//newln string
+		writeBuff("true: .asciz \"True\"\n", !checking);		//true
+		writeBuff("false: .asciz \"False\"\n", !checking);	//false
+		writeBuff("trueln: .asciz \"True\\n\"\n", !checking);		//true newline
+		writeBuff("falseln: .asciz \"False\\n\"\n", !checking);	//false newline
 		
 
 		execStatement((statement*)$1);
@@ -1456,9 +1507,17 @@ Program:
 			"\tpush\t{fp, lr}\n",
 			checking);
 
+		//we gon move our boys
 
 		if(checkBool){
-			//initInputArgs(inpName);
+			initInputArgs(inpName);
+			char* tmparg = malloc(sizeof(char)*1000);
+			sprintf(tmparg, "=%s", inpName);
+			writeInstr(checking, "ldr", 2, "r4", tmparg);
+			writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
+			writeInstr(checking, "str", 2, "r1", "[r4]");
+			free(tmparg);
+
 			execStatement((statement*)$1);
 		}
 		writeBuff("\tpop\t{fp, pc}\n", checking);
@@ -1469,7 +1528,10 @@ Program:
 MainClass:
 	CLASS id LBRACE HEADER LPARENTH PRIMETYPE BRACKETS WORD RPARENTH LBRACE StatementList RBRACE RBRACE {
 		inpName = $8;
-		//initInputArgs($8);
+		writeBuff("inp: .", checking);
+		writeBuff($8, checking);
+		writeBuff(" .word\n", checking);
+		initInputArgs($8);
 		$$ = $11;
 	}
 	;
