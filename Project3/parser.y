@@ -28,6 +28,7 @@ char* inpName;
 int argnum = 0;
 char* argname;
 int labelnum = 0;
+int offset = 4;
 
 void typeViolation(int lineno){
 	checkBool = 0;
@@ -122,6 +123,7 @@ typedef struct symbol {			//entry to symbol table
 	nonTerm* term;
 	struct symbol* next;
 	ast* tree;
+	int offset;
 } sym;
 
 typedef struct classRef {
@@ -224,6 +226,7 @@ void clean(){
 	oldClass = NULL;
 	currentObj = NULL;
 	oldObj = NULL;
+	offset = 0;
 }
 
 void writeBuff(char* inp, int check){
@@ -288,7 +291,8 @@ void writeFile(char* fname){
 	name[x]='.';
 	name[x+1]='s';
 	name[x+2]='\0';	
-	FILE* file = fopen(name, "w");
+	//FILE* file = fopen(name, "w");
+	FILE* file = fopen("test.s", "w");
 	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
 	free(name);
 }
@@ -433,30 +437,58 @@ void insert(varType type, char* name){
 	tail->name = strdup(name);
 	//strcpy(tail->name, name);
 	tail->term->type = type;
+
 	//tail->value = value;
 
-	writeBuff(name, !checking);
-	switch(type){
-	case INT: {
-		writeBuff(": .word 0\n", !checking);
-		break;	
-	}
-	case STRING: {
-		writeBuff(": .word 0\n", !checking);	
-		break;
-	}
-	case BOOL: {
-		writeBuff(": .word 0\n", !checking);
-		break;	
-	}
-	case ARR: {
-		writeBuff(": .word 0\n", !checking);//come back!
-		break;
-	}
-	default: {
-		printf("%d assembler decl not written\n", type);
-		typeViolation(line);
-	}}
+	//writeBuff(name, !checking);
+	/*
+	writeInstr(checking, "mov", 2, "r0", "#16"); 
+	writeInstr(checking, "bl", 1, "malloc");
+	
+	char* tmparg = malloc(sizeof(char)*1000);
+	sprintf(tmparg, "[SP, #%d]", offset);
+
+	writeInstr(checking, "str", 2, "r0", tmparg);
+	free(tmparg);
+	*/
+
+	int size = 16;
+
+	if(!checking){
+		switch(type){
+		case INT: {
+			size = 4;
+			offset-= size;
+			break;	
+		}
+		case STRING: {
+			size = 16;
+			offset-= size;
+			break;
+		}
+		case BOOL: {
+			size = 4;
+			offset-= size;
+			break;	
+		}
+		case ARR: {
+			size =16;
+			offset-= size;
+			break;
+		}
+		default: {
+			printf("%d assembler decl not written\n", type);
+			typeViolation(line);
+		}}
+
+	}	
+	
+	tail->offset = offset;
+	char* tmparg = malloc(sizeof(char)*1000);
+	sprintf(tmparg, "#-%d", size);
+	//writeInstr(checking, "ldr", 2, "r4", tmparg);
+	writeInstr(checking, "add", 3, "sp", "sp", tmparg);
+	free(tmparg);
 
 }
 
@@ -776,11 +808,11 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 			} 
 
 			char* tmparg = malloc(sizeof(char)*1000);
-			sprintf(tmparg, "=%s", tree->str->str);
-			writeInstr(checking, "ldr", 2, "r4", tmparg);
+			sprintf(tmparg, "[fp, #%d]", search(tree->str->str)->offset);
+			writeInstr(checking, "ldr", 2, "r0", tmparg);
 			free(tmparg); 
 
-			writeInstr(checking, "ldr", 2, "r0", "[r4]");
+			//writeInstr(checking, "ldr", 2, "r0", "[r4]");
 			return tree->node.leaf;
 		}
 
@@ -1057,8 +1089,8 @@ nonTerm* execStatement(statement* statem){
 								insert(INT, check->name);
 								solveAst(check->tree, 0);
 								char* tmparg = malloc(sizeof(char)*1000);
-								sprintf(tmparg, "=%s", check->name);
-								writeInstr(checking, "ldr", 2, "r4", tmparg);
+								sprintf(tmparg, "[SP, #%d]", search(check->name)->offset);
+								//writeInstr(checking, "ldr", 2, "r4", tmparg);
 								writeInstr(checking, "str", 2, "r0", "[r4]");
 								free(tmparg);
 								break;	
@@ -1088,10 +1120,10 @@ nonTerm* execStatement(statement* statem){
 					}
 					insert(check->term->type, check->name);
 					solveAst(check->tree, 0);
+
 					char* tmparg = malloc(sizeof(char)*1000);
-					sprintf(tmparg, "=%s", check->name);
-					writeInstr(checking, "ldr", 2, "r4", tmparg);
-					writeInstr(checking, "str", 2, "r0", "[r4]");
+					sprintf(tmparg, "[fp, #%d]", search(check->name)->offset);
+					writeInstr(checking, "str", 2, "r0", tmparg);
 					free(tmparg);
 
 					if(check->term->arrType!=NULL)	//solves for var indexes
@@ -1144,9 +1176,8 @@ nonTerm* execStatement(statement* statem){
 		solveAst(statem->exp, 0);
 		//insert r0 into var
 		char* tmparg = malloc(sizeof(char)*1000);
-		sprintf(tmparg, "=%s", head->name);
-		writeInstr(checking, "ldr", 2, "r4", tmparg);
-		writeInstr(checking, "str", 2, "r0", "[r4]");
+		sprintf(tmparg, "[fp, #%d]", search(head->name)->offset);
+		writeInstr(checking, "str", 2, "r0", tmparg);
 		free(tmparg);
 
 		break;
@@ -1161,8 +1192,8 @@ nonTerm* execStatement(statement* statem){
 		writeLabel(b1, checking);
 
 		solveAst(statem->conditional, 0);
-		char* tmparg = malloc(sizeof(char)*1000);
-		sprintf(tmparg, "=%s", head->name);
+		//char* tmparg = malloc(sizeof(char)*1000);
+		//sprintf(tmparg, "[SP, #%d]", search(head->name)->offset);
 		writeInstr(checking, "cmp", 2, "r0", "#0");
 		writeInstr(checking, "beq", 1, b2);
 
@@ -1170,7 +1201,7 @@ nonTerm* execStatement(statement* statem){
 		execStatement(statem->sub1);
 		writeInstr(checking, "b", 1, b1);
 		writeLabel(b2, checking);
-		free(tmparg);
+		//free(tmparg);
 
 		break;
 	}
@@ -1190,8 +1221,8 @@ nonTerm* execStatement(statement* statem){
 		char* b2 = mkLabel(checking);		//end of else
 
 		solveAst(statem->conditional, 0);
-		char* tmparg = malloc(sizeof(char)*1000);
-		sprintf(tmparg, "=%s", head->name);
+		//char* tmparg = malloc(sizeof(char)*1000);
+		//sprintf(tmparg, "[SP, #%d]", search(head->name)->offset);
 		writeInstr(checking, "cmp", 2, "r0", "#0");
 		writeInstr(checking, "beq", 1, b1);
 		execStatement(statem->sub1);
@@ -1200,7 +1231,7 @@ nonTerm* execStatement(statement* statem){
 		execStatement(statem->sub2);
 		writeLabel(b2, checking);	
 
-		free(tmparg);
+		//free(tmparg);
 		
 
 		break;
@@ -1280,10 +1311,7 @@ int main(int argc, char** argv){
 	//free(head);
 	if(argc>1)
 		fclose(file);
-	//writeFile(fname);
-
-	
-	writeFile("test");
+	writeFile(fname);
 
 	//printall();	
 }
@@ -1386,6 +1414,7 @@ int main(int argc, char** argv){
 		nonTermY* term;
 		struct symbolY* next;
 		astY* tree;
+		int offset;
 	} symY;
 
 	typedef struct classRefY {
@@ -1510,17 +1539,19 @@ Program:
 		//we gon move our boys
 
 		if(checkBool){
+			writeBuff("\tmov\tfp, sp\n", checking);
 			initInputArgs(inpName);
 			char* tmparg = malloc(sizeof(char)*1000);
-			sprintf(tmparg, "=%s", inpName);
+			/*sprintf(tmparg, "[SP, #%d]", search(inpName)->offset);
 			writeInstr(checking, "ldr", 2, "r4", tmparg);
 			writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
 			writeInstr(checking, "str", 2, "r1", "[r4]");
-			free(tmparg);
+			free(tmparg);*/
 
 			execStatement((statement*)$1);
+			writeBuff("\tmov\tsp, fp\n", checking);
+			writeBuff("\tpop\t{fp, pc}\n", checking);
 		}
-		writeBuff("\tpop\t{fp, pc}\n", checking);
 
 	}
 	;
