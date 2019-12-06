@@ -344,7 +344,13 @@ nonTerm* mkNonTermArr(int type, astList* list){	//builds array given dimensions
 		return mkNonTerm(type, NULL);		//leaf
 	}
 
-	nonTerm* arr = mkNonTerm(ARR, &solveAst(list->num, 0)->value.num);
+	int deg = solveAst(list->num, 0)->value.num;
+	int size = deg*sizeof(type);
+	nonTerm* arr = mkNonTerm(ARR, &deg);
+
+	writeInstr(checking, "mov", 2, "r1", "r0");
+	writeInstr(checking, "bl", 1, "malloc");
+
 	for(int x=0; x<solveAst(list->num, 0)->value.num; x++){
 		arr->value.arr[x] = mkNonTermArr(type, list->next);
 	}
@@ -476,6 +482,12 @@ void insert(varType type, char* name){
 			offset-= size;
 			break;
 		}
+		case ARRUNDEC: {
+			size =16;
+			offset-= size;
+			break;
+		}
+
 		default: {
 			printf("%d assembler decl not written\n", type);
 			typeViolation(line);
@@ -1084,14 +1096,18 @@ nonTerm* execStatement(statement* statem){
 								continue;		
 							}
 
+							writeInstr(checking, check->name, 0);
+
 						} else if(!statem->formalListBool) {
 							if(check->tree->node.op==PARSEINTy){
 								insert(INT, check->name);
 								solveAst(check->tree, 0);
 								char* tmparg = malloc(sizeof(char)*1000);
-								sprintf(tmparg, "[SP, #%d]", search(check->name)->offset);
+								//sprintf(tmparg, "[fp, #%d]", search(check->name)->offset);
 								//writeInstr(checking, "ldr", 2, "r4", tmparg);
-								writeInstr(checking, "str", 2, "r0", "[r4]");
+								//writeInstr(checking, "str", 2, "r0", "[r4]");
+								sprintf(tmparg, "[fp, #%d]", search(check->name)->offset);
+								writeInstr(checking, "str", 2, "r0", tmparg);
 								free(tmparg);
 								break;	
 							}
@@ -1542,11 +1558,11 @@ Program:
 			writeBuff("\tmov\tfp, sp\n", checking);
 			initInputArgs(inpName);
 			char* tmparg = malloc(sizeof(char)*1000);
-			/*sprintf(tmparg, "[SP, #%d]", search(inpName)->offset);
+			sprintf(tmparg, "[fp, #%d]", search(inpName)->offset);
 			writeInstr(checking, "ldr", 2, "r4", tmparg);
 			writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
-			writeInstr(checking, "str", 2, "r1", "[r4]");
-			free(tmparg);*/
+			writeInstr(checking, "str", 2, "r1", "[fp, #-16]");
+			free(tmparg);
 
 			execStatement((statement*)$1);
 			writeBuff("\tmov\tsp, fp\n", checking);
