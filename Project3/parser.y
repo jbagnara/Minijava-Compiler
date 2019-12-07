@@ -291,8 +291,8 @@ void writeFile(char* fname){
 	name[x]='.';
 	name[x+1]='s';
 	name[x+2]='\0';	
-	FILE* file = fopen(name, "w");
-	//FILE* file = fopen("test.s", "w");
+	//FILE* file = fopen(name, "w");
+	FILE* file = fopen("test.s", "w");
 	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
 	free(name);
 }
@@ -753,11 +753,7 @@ statement* declArgs(classEntry* class){
 }
 
 void initInputArgs(char* name){
-	/*astList* deg = malloc(sizeof(astList));
-	int* hundert = malloc(sizeof(int));
-	*hundert = argnum;
-	deg->num = mkLeaf(mkNonTerm(INT, hundert));
-	sym* inputArgs;
+	/*sym* inputArgs;
 	sym* inpHead;
 	char** itr = mainArgs;
 
@@ -777,9 +773,15 @@ void initInputArgs(char* name){
 	//search(name)->term = arr;
 	
 	*/
-
-	insert(STRING, name);
-	search(name)->term = mkNonTerm(STRING, "");
+	astList* deg = malloc(sizeof(astList));
+	int* hundert = malloc(sizeof(int));
+	*hundert = argnum;
+	deg->num = mkLeaf(mkNonTerm(INT, hundert));
+	
+	insert(ARR, name);
+	search(name)->term = mkNonTermArr(STRING, deg);
+	search(name)->offset = -16;
+	//search(name)->term = mkNonTerm(STRING, deg);
 	int x=0;
 	/*while(itr[x]!=NULL){
 		inputArgs = malloc(sizeof(sym));
@@ -1121,10 +1123,10 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 			char* val1 = term1->value.str;
 			char* val2 = term2->value.str;
 			char* res;
-			if(val1==NULL){
+			/*if(val1==NULL){
 				typeViolation(line);
 				return NULL;
-			}
+			}*/
 			switch(tree->node.op){
 			case PLUSy:{
 				char* thisStr = val1;
@@ -1683,13 +1685,17 @@ Program:
 
 		if(checkBool){
 			writeInstr(checking, "add", 3, "fp", "sp", "#4");
-			writeInstr(checking, "add", 3, "sp", "sp", "#-4");
+			writeInstr(checking, "add", 3, "sp", "sp", "#-16");
+			checking = 1;
 			initInputArgs(inpName);
+			checking = 0;
 			char* tmparg = malloc(sizeof(char)*1000);
 			sprintf(tmparg, "[fp, #%d]", search(inpName)->offset);
-			writeInstr(checking, "ldr", 2, "r4", tmparg);
-			writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
+			//writeInstr(checking, "ldr", 2, "r4", tmparg);
+			//writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
+			writeInstr(checking, "add", 3, "r1", "r1", "#4");
 			writeInstr(checking, "str", 2, "r1", "[fp, #-16]");
+			offset = -16;
 			free(tmparg);
 			execStatement((statement*)$1);
 			writeInstr(checking, "sub", 3, "sp", "fp", "#4");
