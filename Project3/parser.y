@@ -19,7 +19,7 @@ struct statement;
 struct classEntry;
 struct sym;
 
-int BUFFSIZE = 100000;
+int BUFFSIZE = 10000000;
 char* buffer;
 int buffindex = 0;
 int checkBool = 1;
@@ -291,8 +291,8 @@ void writeFile(char* fname){
 	name[x]='.';
 	name[x+1]='s';
 	name[x+2]='\0';	
-	//FILE* file = fopen(name, "w");
-	FILE* file = fopen("test.s", "w");
+	FILE* file = fopen(name, "w");
+	//FILE* file = fopen("test.s", "w");
 	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
 	free(name);
 }
@@ -332,27 +332,77 @@ nonTerm* mkNonTerm(int type, void* val){
 
 nonTerm* searchNonTermArr(nonTerm* arr, astList* num){
 	if(num==NULL)
-		return arr;
+		return NULL;
+
+	writeInstr(checking, "push", 1, "{r0}");
+	int index = solveAst(num->num, 0)->value.num;
+	writeInstr(checking, "mov", 2, "r1", "r0");
+	writeInstr(checking, "pop", 1, "{r0}");
+	int size = 16;
 	if(num->next==NULL){
-		return arr->value.arr[solveAst(num->num, 0)->value.num];
+		switch(arr->type){
+		case INT:
+			size =16;
+			break;
+		default:
+			size = 4;
+		}
 	}
-	return searchNonTermArr(arr->value.arr[solveAst(num->num, 0)->value.num], num->next);
+
+	char* tmparg = malloc(sizeof(char)*1000);
+	sprintf(tmparg, "#%d", size);
+	writeInstr(checking, "mov", 2, "r2", tmparg);
+	writeInstr(checking, "mul", 3, "r1", "r1", "r2");
+	writeInstr(checking, "add", 3, "r0", "r0", "r1");
+	free(tmparg);
+	if(num->next==NULL){
+		if(arr->value.arr[index] == NULL)
+			return arr->value.arr[0];
+		return arr->value.arr[index];
+	}
+	writeInstr(checking, "ldr", 2, "r0", "[r0]");
+	
+	return searchNonTermArr(arr->value.arr[index], num->next);
 }
 
 nonTerm* mkNonTermArr(int type, astList* list){	//builds array given dimensions
-	if(list == NULL){
+	if(list == NULL){	
+		writeInstr(checking, "mov", 2, "r0", "#0");
 		return mkNonTerm(type, NULL);		//leaf
 	}
 
 	int deg = solveAst(list->num, 0)->value.num;
-	int size = deg*sizeof(type);
+	int size = 16;
+	if(list->next==NULL){
+		switch(type){
+		case STRING:
+			size = 16;
+			break;
+		default:
+			size = 4;
+		}
+	}
+	
+	char* tmpArg = malloc(sizeof(char)*1000);
+	sprintf(tmpArg, "#%d", deg*size);
+	writeInstr(checking, "mov", 2, "r0", tmpArg);
+	//free(tmpArg);
+
 	nonTerm* arr = mkNonTerm(ARR, &deg);
 
-	writeInstr(checking, "mov", 2, "r1", "r0");
 	writeInstr(checking, "bl", 1, "malloc");
 
-	for(int x=0; x<solveAst(list->num, 0)->value.num; x++){
+	for(int x=0; x<deg; x++){
+		writeInstr(checking, "push", 1, "{r0}");
 		arr->value.arr[x] = mkNonTermArr(type, list->next);
+		tmpArg = malloc(sizeof(char)*1000);
+		writeInstr(checking, "mov", 2, "r1", "r0");
+		writeInstr(checking, "pop", 1, "{r0}");
+	
+		sprintf(tmpArg, "[r0, #%d]", x*size);
+		
+		writeInstr(checking, "str", 2, "r1", tmpArg);
+		free(tmpArg);
 	}
 	return arr;
 }
@@ -550,22 +600,67 @@ methodList* methodSearch(classEntry* class, char* methodName){
 }
 
 void writeMethods(){		//writes all methods
-
+	
 	classList* list = classes->next;
 	while(list!=NULL){
-		classEntry* currentClass = list->class;
-		if(currentClass==NULL)
+		classEntry* thisClass = list->class;
+		currentClass = thisClass;
+		if(thisClass==NULL)
 			return;
 
-		methodList* currentMethod = currentClass->list->methods;
+		char* tmparg = malloc(sizeof(char)*1000);
+		methodList* currentMethod = thisClass->list->methods;
+		offset = 0;
 		while(currentMethod!=NULL){
+			sym* arg = currentMethod->arg;
+			int size = 0;
+			checking = 1;
+			pushTable(NULL);
+			/*while(arg!=NULL){
+				switch(arg->term->type){
+				case STRING:
+					size+=16;
+				default:
+					size+=4;
+				}
+				insert(arg->term->type, arg->name);
+				arg = arg->next;
+			}*/
+			checking = 0;
+			sprintf(tmparg, "#%d", size+4);
 			writeLabel(currentMethod->label, checking);
-			writeInstr(checking, "push", 1, "{r1-r4, lr}");
+			writeInstr(checking, "push", 1, "{fp, lr}");
+			writeInstr(checking, "add", 3, "fp", "sp", "#4");	//don't know man
+			sprintf(tmparg, "#-%d", size);
+			writeInstr(checking, "add", 3, "sp", "sp", "#-4");
+			int counter = 3;
+			offset = -4;
+			while(arg!=NULL){
+				char* tmparg2 = malloc(sizeof(char)*1000);
+				sprintf(tmparg2, "r%d", counter);
+				//writeInstr(checking, "mov", 2, "r0", tmparg2);
+				insert(arg->term->type, arg->name);
+				
+				char* tmparg3 = malloc(sizeof(char)*1000);
+				sprintf(tmparg3, "r%d", counter);
+
+				sprintf(tmparg3, "[fp, #%d]", search(arg->name)->offset);
+				writeInstr(checking, "str", 2, tmparg2, tmparg3);
+				free(tmparg2);
+				free(tmparg3);
+				counter++;
+				arg = arg->next;
+			}
 			currentMethod->ret = execStatement(currentMethod->statementList);
-			writeInstr(checking, "pop", 1, "{r1-r4, pc}");
+			sprintf(tmparg, "#%d", size+4);
+			popTable();
+			writeInstr(checking, "sub", 3, "sp", "fp", "#4");
+			writeInstr(checking, "pop", 1, "{fp, pc}");
 			currentMethod=currentMethod->next;	
 		}
+		free(tmparg);
 		list = list->next;
+		offset = 0;
 	}
 
 
@@ -590,28 +685,44 @@ void initArgs(sym* list, sym* input){			//do type checks! ***
 	//current->formalListBool=1;
 	//statement* stateHead = current;
 	sym* itr = list;
-	while(input!=NULL&&itr!=NULL){	
-		strArr* this = malloc(sizeof(strArr));
-		this->str = itr->name;
-		if(this->str==NULL||input->term==NULL)
-			return;
-
-		char* arg = malloc(sizeof(char)*1000);
-		arg[0] = '=';
-		strcpy(arg+1, this->str);
-		writeInstr(checking, "ldr", 2, "r4", arg);
-		free(arg);
-
+	sym* check = input;
+	int thisOffset = 0;
+	/*while(input!=NULL&&itr!=NULL){	
+		int size = 16;
 		solveAst(mkLeaf(input->term), 0);
-		writeInstr(checking, "str", 2, "r0", "[r4]");
+		switch(input->term->type){
+		case STRING:
+			size = 16;
+		case INT:
+			size = 4;
+		case BOOL:
+			size = 4;
+		default:
+			size = 16;
+		}
+		thisOffset+=size;
+		char* tmparg = malloc(sizeof(char)*1000);
+		sprintf(tmparg, "[fp, #%d]", offset-thisOffset+8);
+		writeInstr(checking, "str", 2, "r0", tmparg);
+		free(tmparg);	
 
-		writeBuff(this->str, !checking);		//declare instance var
-		writeBuff(": .word 0\n", !checking);
 
 		//current->next = mkStatement(INIT, NULL, NULL, this, mkLeaf(input->term), NULL, NULL);
 		input = input->next;
 		itr = itr->next;
+	}*/
+	int counter = 1;
+	while(input!=NULL&&itr!=NULL){
+		solveAst(mkLeaf(input->term), 0);
+		char* tmparg = malloc(sizeof(char)*1000);
+		sprintf(tmparg, "r%d", counter);
+		writeInstr(checking, "mov", 2, tmparg, "r0");
+		free(tmparg);	
+		counter++;
+		itr = itr->next;
+		input = input->next;
 	}
+
 	return; 
 
 	//statement* statem = mkStatement(DECLY, NULL, $2, NULL, NULL, (arrType*)$1, (sym*)$3);
@@ -785,13 +896,22 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				astList* input = tree->str->class->exp;
 				sym* formInput = malloc(sizeof(sym));
 				sym* formhead = formInput;
+				int counter = 3;
 				while(input!=NULL){
 					formInput->term = solveAst(input->num, 0);
+
+					char* tmparg = malloc(sizeof(char)*1000);
+					sprintf(tmparg, "r%d", counter);
+					writeInstr(checking, "mov", 2, tmparg, "r0");
+					free(tmparg);	
+
 					formInput->next = malloc(sizeof(sym));
 					formInput = formInput->next;
 					input = input->next;
+					counter++;
 				}	
 				
+				//initArgs(method->arg, formhead);		//this will need to be changed
 				if(statementList==NULL)
 					typeViolation(line);
 
@@ -803,7 +923,6 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 					currentClass = thisClass;
 				}
 				//nonTerm* ret = execStatement(statementList);
-				initArgs(method->arg, formhead);		//this will need to be changed
 				writeInstr(checking, "bl", 1, method->label);		//branch to method
 				
 				popTable();
@@ -815,14 +934,17 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				return NULL;
 			}	
 			tree->node.leaf =  search(tree->str->str)->term;
-			if(tree->node.leaf->type==ARR){	//arr
-				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
-			} 
-
 			char* tmparg = malloc(sizeof(char)*1000);
 			sprintf(tmparg, "[fp, #%d]", search(tree->str->str)->offset);
 			writeInstr(checking, "ldr", 2, "r0", tmparg);
 			free(tmparg); 
+			if(tree->node.leaf->type==ARR){	//arr
+				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
+				tmparg = malloc(sizeof(char)*1000);
+				sprintf(tmparg, "[r0]", search(tree->str->str)->offset);
+				writeInstr(checking, "ldr", 2, "r0", tmparg);
+				free(tmparg); 
+			}
 
 			//writeInstr(checking, "ldr", 2, "r0", "[r4]");
 			return tree->node.leaf;
@@ -876,6 +998,10 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 			
 			writeInstr(checking, "mov", 2, "r0", "r2");
 			break;
+		}
+
+		case ARRUNDEC:{
+			return mkNonTermArr(tree->node.leaf->arrType->type, tree->node.leaf->value.numArr);	
 		}}
 		
 		return tree->node.leaf;
@@ -1016,7 +1142,7 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 				writeInstr(checking, "mov", 2, "r2", "r1");
 				writeInstr(checking, "mov", 2, "r1", "r0");	
 				char* arg = malloc(sizeof(char)*1000);
-				sprintf(arg, "#%d", size1+size2);	
+				sprintf(arg, "#%d", 300);	
 				writeInstr(checking, "mov", 2, "r0", arg);
 				free(arg);
 
@@ -1090,13 +1216,6 @@ nonTerm* execStatement(statement* statem){
 				} else{
 					if(check->term->type!=thisType->type){		//Different type
 						if(thisType->deg>1){	//Is ARR, need to check type
-							if (thisType->type!=check->term->arrType->type) {
-								typeViolation(line);
-								check = check->next;
-								continue;		
-							}
-
-							writeInstr(checking, check->name, 0);
 
 						} else if(!statem->formalListBool) {
 							if(check->tree->node.op==PARSEINTy){
@@ -1139,17 +1258,17 @@ nonTerm* execStatement(statement* statem){
 
 					char* tmparg = malloc(sizeof(char)*1000);
 					sprintf(tmparg, "[fp, #%d]", search(check->name)->offset);
+					
+					if(check->term->arrType!=NULL)	//solves for var indexes
+						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
 					writeInstr(checking, "str", 2, "r0", tmparg);
 					free(tmparg);
 
-					if(check->term->arrType!=NULL)	//solves for var indexes
-						check->term = mkNonTermArr(check->term->arrType->type, check->term->value.numArr);
 					if(check->term==NULL){
 						typeViolation(line);
 						check = check->next;
 						continue;		
 					}
-					
 					search(check->name)->term = check->term;
 				}
 			} else {
@@ -1184,15 +1303,23 @@ nonTerm* execStatement(statement* statem){
 			typeViolation(line);
 			break;
 		}
-		if(head->term->arrType!=NULL)				//solves for var indexes
-			head->term = mkNonTermArr(head->term->arrType->type, head->term->value.numArr);
-					
-		
-		//memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp, 0), sizeof(nonTerm));			//copies exp to the symbol table pointer
-		solveAst(statem->exp, 0);
-		//insert r0 into var
+						
 		char* tmparg = malloc(sizeof(char)*1000);
 		sprintf(tmparg, "[fp, #%d]", search(head->name)->offset);
+		writeInstr(checking, "ldr", 2, "r0", tmparg);
+		if(statem->leftVal->num!=NULL){
+			searchNonTermArr(search(head->name)->term, statem->leftVal->num);
+			writeInstr(checking, "mov", 2, "r1", "r0");
+			writeInstr(checking, "push", 1, "{r1}");
+			solveAst(statem->exp, 0);
+			writeInstr(checking, "pop", 1, "{r1}");
+			writeInstr(checking, "str", 2, "r0", "[r1]");
+			free(tmparg);
+			break;
+		}	
+		//memcpy((void*)searchNonTermArr(search(head->name)->term, statem->leftVal->num), (void*)solveAst(statem->exp, 0), sizeof(nonTerm));			//copies exp to the symbol table pointer
+		search(head->name)->term = solveAst(statem->exp, 0);
+		//insert r0 into var
 		writeInstr(checking, "str", 2, "r0", tmparg);
 		free(tmparg);
 
@@ -1555,7 +1682,8 @@ Program:
 		//we gon move our boys
 
 		if(checkBool){
-			writeBuff("\tmov\tfp, sp\n", checking);
+			writeInstr(checking, "add", 3, "fp", "sp", "#4");
+			writeInstr(checking, "add", 3, "sp", "sp", "#-4");
 			initInputArgs(inpName);
 			char* tmparg = malloc(sizeof(char)*1000);
 			sprintf(tmparg, "[fp, #%d]", search(inpName)->offset);
@@ -1563,10 +1691,9 @@ Program:
 			writeInstr(checking, "ldr", 2, "r1", "[r1, #4]");
 			writeInstr(checking, "str", 2, "r1", "[fp, #-16]");
 			free(tmparg);
-
 			execStatement((statement*)$1);
-			writeBuff("\tmov\tsp, fp\n", checking);
-			writeBuff("\tpop\t{fp, pc}\n", checking);
+			writeInstr(checking, "sub", 3, "sp", "fp", "#4");
+			writeInstr(checking, "pop", 1, "{fp, pc}");
 		}
 
 	}
