@@ -291,8 +291,8 @@ void writeFile(char* fname){
 	name[x]='.';
 	name[x+1]='s';
 	name[x+2]='\0';	
-	//FILE* file = fopen(name, "w");
-	FILE* file = fopen("test.s", "w");
+	FILE* file = fopen(name, "w");
+	//FILE* file = fopen("test.s", "w");
 	fwrite(buffer, sizeof(char), sizeof(char)*buffindex, file);
 	free(name);
 }
@@ -943,7 +943,7 @@ nonTerm* solveAst(ast* tree, int side){		//reduces ast tree to single nonTerm
 			if(tree->node.leaf->type==ARR){	//arr
 				tree->node.leaf=searchNonTermArr(search(tree->str->str)->term, tree->str->num); 
 				tmparg = malloc(sizeof(char)*1000);
-				sprintf(tmparg, "[r0]", search(tree->str->str)->offset);
+				sprintf(tmparg, "[r0]");
 				writeInstr(checking, "ldr", 2, "r0", tmparg);
 				free(tmparg); 
 			}
