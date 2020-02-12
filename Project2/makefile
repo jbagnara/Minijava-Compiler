@@ -1,16 +1,12 @@
 parser: y.tab.c lex.yy.c
-	gcc lex.yy.c y.tab.c -o parser -g
+	gcc lex.yy.c y.tab.c -o interpreter -g
 
-y.tab.c: parser.y
-	yacc -d -v parser.y
+y.tab.c: interpreter.y
+	yacc -d -v interpreter.y
 
-lex.yy.c: parser.l
-	lex parser.l
+lex.yy.c: interpreter.l
+	lex interpreter.l
 
 clean:
 	rm -f lex.yy.c y.tab.c parser interpret y.output
 
-interpret:
-	lex parser.l
-	yacc -d -v parser.y
-	gcc lex.yy.c y.tab.c -o interpret -g

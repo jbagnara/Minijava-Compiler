@@ -1,16 +1,12 @@
-parser: y.tab.c lex.yy.c
-	gcc lex.yy.c y.tab.c -o parser -g
+mjavac: y.tab.c lex.yy.c
+	gcc lex.yy.c y.tab.c -o mjavac -g
 
-y.tab.c: parser.y
-	yacc -d -v parser.y
+y.tab.c: compiler.y
+	yacc -d -v compiler.y
 
-lex.yy.c: parser.l
-	lex parser.l
+lex.yy.c: compiler.l
+	lex compiler.l
 
 clean:
-	rm -f lex.yy.c y.tab.c parser interpret y.output
+	rm -f lex.yy.c y.tab.c mjavac y.output
 
-interpret:
-	lex parser.l
-	yacc -d -v parser.y
-	gcc lex.yy.c y.tab.c -o interpret -g
