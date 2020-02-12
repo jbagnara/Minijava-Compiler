@@ -8,5 +8,5 @@ lex.yy.c: interpreter.l
 	lex interpreter.l
 
 clean:
-	rm -f lex.yy.c y.tab.c parser interpret y.output
+	rm -f lex.yy.c y.tab.c interpreter y.output
 
